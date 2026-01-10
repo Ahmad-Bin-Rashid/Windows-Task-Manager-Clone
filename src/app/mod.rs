@@ -63,6 +63,12 @@ pub struct App {
     last_refresh_time: Instant,
     /// Refresh interval in milliseconds
     pub refresh_interval_ms: u64,
+    /// Whether we're viewing process details
+    pub detail_view_mode: bool,
+    /// Cached process details for the detail view
+    pub process_details: Option<crate::system::details::ProcessDetails>,
+    /// Scroll offset for detail view
+    pub detail_scroll_offset: usize,
 }
 
 impl App {
@@ -86,7 +92,70 @@ impl App {
             prev_disk_io: HashMap::new(),
             last_refresh_time: Instant::now(),
             refresh_interval_ms: 1000, // Default 1 second
+            detail_view_mode: false,
+            process_details: None,
+            detail_scroll_offset: 0,
         }
+    }
+
+    /// Open detail view for selected process
+    pub fn open_detail_view(&mut self) {
+        if let Some(entry) = self.filtered_processes.get(self.selected_index) {
+            use crate::system::details::*;
+            
+            let pid = entry.info.pid;
+            let modules = get_process_modules(pid);
+            let tcp_connections = get_process_tcp_connections(pid);
+            let udp_endpoints = get_process_udp_endpoints(pid);
+            let command_line = get_process_command_line(pid);
+            
+            self.process_details = Some(ProcessDetails {
+                pid,
+                name: entry.info.name.clone(),
+                path: entry.path.clone(),
+                command_line,
+                modules,
+                tcp_connections,
+                udp_endpoints,
+                cpu_percent: entry.cpu_percent,
+                memory_bytes: entry.memory_bytes,
+                thread_count: entry.thread_count,
+                handle_count: entry.handle_count,
+                priority: entry.priority.short_name().to_string(),
+                uptime_seconds: entry.uptime_seconds,
+                disk_read_rate: entry.disk_read_rate,
+                disk_write_rate: entry.disk_write_rate,
+            });
+            self.detail_view_mode = true;
+            self.detail_scroll_offset = 0;
+        }
+    }
+
+    /// Close detail view
+    pub fn close_detail_view(&mut self) {
+        self.detail_view_mode = false;
+        self.process_details = None;
+        self.detail_scroll_offset = 0;
+    }
+
+    /// Scroll up in detail view
+    pub fn detail_scroll_up(&mut self) {
+        self.detail_scroll_offset = self.detail_scroll_offset.saturating_sub(1);
+    }
+
+    /// Scroll down in detail view
+    pub fn detail_scroll_down(&mut self) {
+        self.detail_scroll_offset = self.detail_scroll_offset.saturating_add(1);
+    }
+
+    /// Page up in detail view
+    pub fn detail_page_up(&mut self, lines: usize) {
+        self.detail_scroll_offset = self.detail_scroll_offset.saturating_sub(lines);
+    }
+
+    /// Page down in detail view
+    pub fn detail_page_down(&mut self, lines: usize) {
+        self.detail_scroll_offset = self.detail_scroll_offset.saturating_add(lines);
     }
 
     /// Increase refresh interval (slower refresh)

@@ -5,6 +5,7 @@
 //!
 //! Controls:
 //! - q: Quit
+//! - Enter: View process details
 //! - k: Kill selected process (with confirmation)
 //! - +/-: Raise/lower process priority
 //! - s: Cycle sort column
@@ -83,6 +84,12 @@ fn main() -> io::Result<()> {
                 // Handle confirm kill mode
                 if app.confirm_kill_mode {
                     handle_confirm_kill_keys(&mut app, key_event.code);
+                    continue;
+                }
+
+                // Handle detail view mode
+                if app.detail_view_mode {
+                    handle_detail_view_keys(&mut app, key_event.code)?;
                     continue;
                 }
 
@@ -194,6 +201,9 @@ fn handle_normal_keys(
             app.filter.clear();
             app.apply_filter();
         }
+        KeyCode::Enter => {
+            app.open_detail_view();
+        }
         KeyCode::Up => app.move_up(),
         KeyCode::Down => app.move_down(),
         KeyCode::PageUp => {
@@ -209,5 +219,37 @@ fn handle_normal_keys(
         _ => {}
     }
     Ok(false)
+}
+
+/// Handles key events in detail view mode
+fn handle_detail_view_keys(app: &mut App, code: KeyCode) -> io::Result<()> {
+    match code {
+        KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
+            app.close_detail_view();
+        }
+        KeyCode::Char('k') | KeyCode::Char('K') => {
+            // Allow killing from detail view
+            app.close_detail_view();
+            app.request_kill();
+        }
+        KeyCode::Up => app.detail_scroll_up(),
+        KeyCode::Down => app.detail_scroll_down(),
+        KeyCode::PageUp => {
+            let (_, h) = terminal::size()?;
+            app.detail_page_up((h as usize).saturating_sub(6));
+        }
+        KeyCode::PageDown => {
+            let (_, h) = terminal::size()?;
+            app.detail_page_down((h as usize).saturating_sub(6));
+        }
+        KeyCode::Home => {
+            app.detail_scroll_offset = 0;
+        }
+        KeyCode::End => {
+            app.detail_scroll_offset = usize::MAX; // Will be clamped during render
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
