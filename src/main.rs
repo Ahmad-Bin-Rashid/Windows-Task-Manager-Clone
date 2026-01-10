@@ -10,6 +10,8 @@
 //! - s: Cycle sort column
 //! - r: Reverse sort order
 //! - /: Filter by process name
+//! - [: Slow down refresh rate
+//! - ]: Speed up refresh rate
 //! - ↑/↓: Navigate process list
 //! - PgUp/PgDown: Scroll by page
 //! - Home/End: Jump to start/end
@@ -35,9 +37,6 @@ use crossterm::{
 use app::App;
 use ui::render;
 
-/// Refresh interval in milliseconds
-const REFRESH_INTERVAL_MS: u64 = 5000;
-
 fn main() -> io::Result<()> {
     let mut stdout = io::stdout();
 
@@ -57,12 +56,14 @@ fn main() -> io::Result<()> {
     app.refresh();
 
     let mut last_refresh = Instant::now();
-    let refresh_interval = Duration::from_millis(REFRESH_INTERVAL_MS);
 
     // Main loop
     loop {
         // Render current state
         render(&mut stdout, &mut app)?;
+
+        // Calculate dynamic refresh interval
+        let refresh_interval = Duration::from_millis(app.refresh_interval_ms);
 
         // Check for events (with timeout for refresh)
         let timeout = refresh_interval
@@ -98,8 +99,8 @@ fn main() -> io::Result<()> {
             }
         }
 
-        // Time-based refresh
-        if last_refresh.elapsed() >= refresh_interval {
+        // Time-based refresh (recalculate interval in case it changed)
+        if last_refresh.elapsed() >= Duration::from_millis(app.refresh_interval_ms) {
             app.refresh();
             last_refresh = Instant::now();
         }
@@ -179,6 +180,12 @@ fn handle_normal_keys(
         }
         KeyCode::Char('r') | KeyCode::Char('R') => {
             app.toggle_sort_order();
+        }
+        KeyCode::Char('[') => {
+            app.increase_refresh_interval();
+        }
+        KeyCode::Char(']') => {
+            app.decrease_refresh_interval();
         }
         KeyCode::Char('/') => {
             app.filter_mode = true;

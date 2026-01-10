@@ -61,6 +61,8 @@ pub struct App {
     prev_disk_io: HashMap<u32, DiskIoSnapshot>,
     /// Time of last refresh for rate calculation
     last_refresh_time: Instant,
+    /// Refresh interval in milliseconds
+    pub refresh_interval_ms: u64,
 }
 
 impl App {
@@ -83,6 +85,40 @@ impl App {
             pending_kill_name: None,
             prev_disk_io: HashMap::new(),
             last_refresh_time: Instant::now(),
+            refresh_interval_ms: 1000, // Default 1 second
+        }
+    }
+
+    /// Increase refresh interval (slower refresh)
+    pub fn increase_refresh_interval(&mut self) {
+        self.refresh_interval_ms = match self.refresh_interval_ms {
+            x if x >= 10000 => 10000, // Max 10 seconds
+            x if x >= 5000 => 10000,
+            x if x >= 2000 => 5000,
+            x if x >= 1000 => 2000,
+            x if x >= 500 => 1000,
+            _ => 500,
+        };
+    }
+
+    /// Decrease refresh interval (faster refresh)
+    pub fn decrease_refresh_interval(&mut self) {
+        self.refresh_interval_ms = match self.refresh_interval_ms {
+            x if x <= 500 => 250, // Min 250ms
+            x if x <= 1000 => 500,
+            x if x <= 2000 => 1000,
+            x if x <= 5000 => 2000,
+            x if x <= 10000 => 5000,
+            _ => 5000,
+        };
+    }
+
+    /// Format refresh interval for display
+    pub fn format_refresh_interval(&self) -> String {
+        if self.refresh_interval_ms >= 1000 {
+            format!("{:.1}s", self.refresh_interval_ms as f64 / 1000.0)
+        } else {
+            format!("{}ms", self.refresh_interval_ms)
         }
     }
 

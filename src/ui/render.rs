@@ -87,16 +87,17 @@ fn render_system_stats(
     };
     let sort_arrow = if app.sort_ascending { "↑" } else { "↓" };
     let sort_str = format!("Sort: {} {}", app.sort_column.name(), sort_arrow);
+    let refresh_str = format!("Refresh: {}", app.format_refresh_interval());
 
     execute!(
         stdout,
         SetForegroundColor(Color::Cyan),
         Print(format!(
-            " {}  |  {}  |  {}  |  {}",
-            cpu_str, mem_str, proc_count, sort_str
+            " {}  |  {}  |  {}  |  {}  |  {}",
+            cpu_str, mem_str, proc_count, sort_str, refresh_str
         )),
         ResetColor,
-        Print(format!("{:width$}\r\n", "", width = width.saturating_sub(80)))
+        Print(format!("{:width$}\r\n", "", width = width.saturating_sub(100)))
     )
 }
 
@@ -298,7 +299,7 @@ fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result
     } else if app.filter_mode {
         " Type to filter | Enter:Apply | Esc:Cancel"
     } else {
-        " q:Quit | k:Kill | +/-:Priority | s:Sort | r:Reverse | /:Filter"
+        " q:Quit | k:Kill | +/-:Priority | s:Sort | r:Reverse | /:Filter | [/]:Speed"
     };
     execute!(
         stdout,
