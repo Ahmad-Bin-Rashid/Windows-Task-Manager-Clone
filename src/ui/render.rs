@@ -91,7 +91,11 @@ fn render_system_stats(
         format!("Showing: {}/{}", app.filtered_processes.len(), app.processes.len())
     };
     let sort_arrow = if app.sort_ascending { "↑" } else { "↓" };
-    let sort_str = format!("Sort: {} {}", app.sort_column.name(), sort_arrow);
+    let sort_str = if app.tree_view_mode {
+        "View: Tree".to_string()
+    } else {
+        format!("Sort: {} {}", app.sort_column.name(), sort_arrow)
+    };
     let refresh_str = format!("Refresh: {}", app.format_refresh_interval());
 
     execute!(
@@ -191,6 +195,14 @@ fn render_process_list(
         };
 
         // Build the line parts
+        // Add tree indentation if in tree view mode
+        let tree_prefix = if app.tree_view_mode && entry.tree_depth > 0 {
+            let indent = "  ".repeat(entry.tree_depth.min(5));
+            format!("{}└─", indent)
+        } else {
+            String::new()
+        };
+        
         let prefix = format!(
             " {:>7}  {:>8}  {:>5}  {:>6}  {:>9}  {:>10}  ",
             entry.info.pid,
@@ -201,11 +213,15 @@ fn render_process_list(
             format_bytes(entry.memory_bytes),
         );
         let cpu_str = format!("{:>5.1}%", entry.cpu_percent);
+        
+        // Calculate available space for name with tree prefix
+        let name_space = width.saturating_sub(90 + tree_prefix.len());
         let suffix = format!(
-            "  {:>9}  {:>9}  {}",
+            "  {:>9}  {:>9}  {}{}",
             format_rate(entry.disk_read_rate),
             format_rate(entry.disk_write_rate),
-            truncate_string(&entry.info.name, width.saturating_sub(90))
+            tree_prefix,
+            truncate_string(&entry.info.name, name_space)
         );
 
         if is_selected {
@@ -304,7 +320,7 @@ fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result
     } else if app.filter_mode {
         " Type to filter | Enter:Apply | Esc:Cancel"
     } else {
-        " q:Quit | Enter:Details | k:Kill | +/-:Priority | s:Sort | /:Filter | [/]:Speed"
+        " q:Quit | Enter:Details | k:Kill | t:Tree | s:Sort | /:Filter | [/]:Speed"
     };
     execute!(
         stdout,

@@ -7,6 +7,7 @@
 //! - q: Quit
 //! - Enter: View process details
 //! - k: Kill selected process (with confirmation)
+//! - t: Toggle tree view (show parent-child hierarchy)
 //! - +/-: Raise/lower process priority
 //! - s: Cycle sort column
 //! - r: Reverse sort order
@@ -187,6 +188,9 @@ fn handle_normal_keys(
         }
         KeyCode::Char('r') | KeyCode::Char('R') => {
             app.toggle_sort_order();
+        }
+        KeyCode::Char('t') | KeyCode::Char('T') => {
+            app.toggle_tree_view();
         }
         KeyCode::Char('[') => {
             app.increase_refresh_interval();

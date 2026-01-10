@@ -32,4 +32,6 @@ pub struct ProcessEntry {
     pub path: Option<String>,
     /// Number of open handles
     pub handle_count: u32,
+    /// Tree depth for tree view (0 = root)
+    pub tree_depth: usize,
 }

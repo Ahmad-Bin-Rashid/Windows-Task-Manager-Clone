@@ -69,6 +69,8 @@ pub struct App {
     pub process_details: Option<crate::system::details::ProcessDetails>,
     /// Scroll offset for detail view
     pub detail_scroll_offset: usize,
+    /// Whether we're in tree view mode
+    pub tree_view_mode: bool,
 }
 
 impl App {
@@ -95,7 +97,14 @@ impl App {
             detail_view_mode: false,
             process_details: None,
             detail_scroll_offset: 0,
+            tree_view_mode: false,
         }
+    }
+
+    /// Toggle tree view mode
+    pub fn toggle_tree_view(&mut self) {
+        self.tree_view_mode = !self.tree_view_mode;
+        self.apply_filter(); // Rebuild filtered list with tree structure
     }
 
     /// Open detail view for selected process
@@ -270,6 +279,7 @@ impl App {
                     uptime_seconds,
                     path,
                     handle_count,
+                    tree_depth: 0,
                 }
             })
             .collect();
@@ -323,20 +333,97 @@ impl App {
 
     /// Apply the current filter to the process list
     pub fn apply_filter(&mut self) {
-        if self.filter.is_empty() {
-            self.filtered_processes = self.processes.clone();
+        // First apply text filter
+        let mut filtered: Vec<ProcessEntry> = if self.filter.is_empty() {
+            self.processes.clone()
         } else {
             let filter_lower = self.filter.to_lowercase();
-            self.filtered_processes = self.processes
+            self.processes
                 .iter()
                 .filter(|p| p.info.name.to_lowercase().contains(&filter_lower))
                 .cloned()
-                .collect();
+                .collect()
+        };
+
+        // If tree view is enabled, reorganize into tree structure
+        if self.tree_view_mode {
+            self.filtered_processes = self.build_process_tree(&filtered);
+        } else {
+            // Reset tree depth for flat view
+            for p in &mut filtered {
+                p.tree_depth = 0;
+            }
+            self.filtered_processes = filtered;
         }
 
         // Reset selection if out of bounds
         if self.selected_index >= self.filtered_processes.len() {
             self.selected_index = self.filtered_processes.len().saturating_sub(1);
+        }
+    }
+
+    /// Build a tree-structured list of processes
+    fn build_process_tree(&self, processes: &[ProcessEntry]) -> Vec<ProcessEntry> {
+        use std::collections::HashSet;
+
+        // Create a map of PID -> ProcessEntry
+        let pid_map: HashMap<u32, &ProcessEntry> = processes
+            .iter()
+            .map(|p| (p.info.pid, p))
+            .collect();
+
+        // Find all PIDs in our list
+        let all_pids: HashSet<u32> = processes.iter().map(|p| p.info.pid).collect();
+
+        // Find root processes (parent not in our list or parent is 0)
+        let mut roots: Vec<&ProcessEntry> = processes
+            .iter()
+            .filter(|p| {
+                p.info.parent_pid == 0 || !all_pids.contains(&p.info.parent_pid)
+            })
+            .collect();
+
+        // Sort roots by name
+        roots.sort_by(|a, b| a.info.name.to_lowercase().cmp(&b.info.name.to_lowercase()));
+
+        // Recursively build tree
+        let mut result = Vec::new();
+        for root in roots {
+            self.add_process_with_children(&mut result, root, 0, &pid_map, &all_pids);
+        }
+
+        result
+    }
+
+    /// Recursively add a process and its children to the result list
+    fn add_process_with_children(
+        &self,
+        result: &mut Vec<ProcessEntry>,
+        process: &ProcessEntry,
+        depth: usize,
+        pid_map: &HashMap<u32, &ProcessEntry>,
+        all_pids: &std::collections::HashSet<u32>,
+    ) {
+        // Add this process with its depth
+        let mut entry = process.clone();
+        entry.tree_depth = depth;
+        result.push(entry);
+
+        // Find and add children
+        let mut children: Vec<&ProcessEntry> = pid_map
+            .values()
+            .filter(|p| p.info.parent_pid == process.info.pid && p.info.pid != process.info.pid)
+            .cloned()
+            .collect();
+
+        // Sort children by name
+        children.sort_by(|a, b| a.info.name.to_lowercase().cmp(&b.info.name.to_lowercase()));
+
+        // Recursively add children (limit depth to prevent infinite loops)
+        if depth < 10 {
+            for child in children {
+                self.add_process_with_children(result, child, depth + 1, pid_map, all_pids);
+            }
         }
     }
 
