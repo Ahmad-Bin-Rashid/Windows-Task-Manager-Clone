@@ -6,6 +6,9 @@ mod sort;
 pub use process_entry::ProcessEntry;
 pub use sort::SortColumn;
 
+use std::collections::HashMap;
+use std::time::Instant;
+
 use windows::Win32::Foundation::CloseHandle;
 use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
 
@@ -14,6 +17,14 @@ use crate::system::disk::get_process_disk_info;
 use crate::system::memory::get_process_memory_info;
 use crate::system::priority::{get_process_priority, set_process_priority};
 use crate::system::processes::enumerate_processes;
+use crate::system::uptime::{get_process_start_time, calculate_uptime_seconds};
+
+/// Previous disk I/O snapshot for rate calculation
+#[derive(Debug, Clone, Default)]
+struct DiskIoSnapshot {
+    read_bytes: u64,
+    write_bytes: u64,
+}
 
 /// Application state
 pub struct App {
@@ -45,6 +56,10 @@ pub struct App {
     pub pending_kill_pid: Option<u32>,
     /// Name of process pending kill confirmation
     pub pending_kill_name: Option<String>,
+    /// Previous disk I/O values for rate calculation
+    prev_disk_io: HashMap<u32, DiskIoSnapshot>,
+    /// Time of last refresh for rate calculation
+    last_refresh_time: Instant,
 }
 
 impl App {
@@ -65,11 +80,18 @@ impl App {
             confirm_kill_mode: false,
             pending_kill_pid: None,
             pending_kill_name: None,
+            prev_disk_io: HashMap::new(),
+            last_refresh_time: Instant::now(),
         }
     }
 
     /// Refreshes the process list and metrics
     pub fn refresh(&mut self) {
+        // Calculate time delta for rate calculations
+        let now = Instant::now();
+        let time_delta = now.duration_since(self.last_refresh_time).as_secs_f64();
+        self.last_refresh_time = now;
+
         // Get system CPU usage
         self.system_cpu = self.cpu_tracker.get_system_cpu_usage();
 
@@ -82,26 +104,66 @@ impl App {
             }
         };
 
+        // Build new disk I/O map for this refresh
+        let mut new_disk_io: HashMap<u32, DiskIoSnapshot> = HashMap::new();
+
         // Build process entries with CPU and memory info
         self.processes = processes
             .into_iter()
             .map(|info| {
-                let cpu_percent = self.cpu_tracker.get_process_cpu_usage(info.pid);
-                let mem_info = get_process_memory_info(info.pid);
-                let disk_info = get_process_disk_info(info.pid);
-                let priority = get_process_priority(info.pid);
+                let pid = info.pid;
+                let cpu_percent = self.cpu_tracker.get_process_cpu_usage(pid);
+                let mem_info = get_process_memory_info(pid);
+                let disk_info = get_process_disk_info(pid);
+                let priority = get_process_priority(pid);
                 let thread_count = info.thread_count;
+
+                // Calculate disk I/O rates
+                let (disk_read_rate, disk_write_rate) = if time_delta > 0.0 {
+                    if let Some(prev) = self.prev_disk_io.get(&pid) {
+                        let read_delta = disk_info.read_bytes.saturating_sub(prev.read_bytes);
+                        let write_delta = disk_info.write_bytes.saturating_sub(prev.write_bytes);
+                        (
+                            read_delta as f64 / time_delta,
+                            write_delta as f64 / time_delta,
+                        )
+                    } else {
+                        (0.0, 0.0)
+                    }
+                } else {
+                    (0.0, 0.0)
+                };
+
+                // Store current disk I/O for next calculation
+                new_disk_io.insert(pid, DiskIoSnapshot {
+                    read_bytes: disk_info.read_bytes,
+                    write_bytes: disk_info.write_bytes,
+                });
+
+                // Get process uptime
+                let start_time = get_process_start_time(pid);
+                let uptime_seconds = start_time
+                    .map(|st| calculate_uptime_seconds(st))
+                    .unwrap_or(0);
+
                 ProcessEntry {
                     info,
                     cpu_percent,
                     memory_bytes: mem_info.working_set,
                     disk_read: disk_info.read_bytes,
                     disk_write: disk_info.write_bytes,
+                    disk_read_rate,
+                    disk_write_rate,
                     priority,
                     thread_count,
+                    start_time,
+                    uptime_seconds,
                 }
             })
             .collect();
+
+        // Update previous disk I/O map
+        self.prev_disk_io = new_disk_io;
 
         // Sort based on selected column
         self.sort_processes();
@@ -134,8 +196,13 @@ impl App {
                 SortColumn::Pid => a.info.pid.cmp(&b.info.pid),
                 SortColumn::Priority => b.priority.cmp(&a.priority),
                 SortColumn::Threads => b.thread_count.cmp(&a.thread_count),
-                SortColumn::DiskRead => b.disk_read.cmp(&a.disk_read),
-                SortColumn::DiskWrite => b.disk_write.cmp(&a.disk_write),
+                SortColumn::Uptime => b.uptime_seconds.cmp(&a.uptime_seconds),
+                SortColumn::DiskReadRate => b.disk_read_rate
+                    .partial_cmp(&a.disk_read_rate)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+                SortColumn::DiskWriteRate => b.disk_write_rate
+                    .partial_cmp(&a.disk_write_rate)
+                    .unwrap_or(std::cmp::Ordering::Equal),
             };
             if ascending { cmp.reverse() } else { cmp }
         });

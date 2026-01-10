@@ -11,6 +11,7 @@ use crossterm::{
 
 use crate::app::App;
 use crate::system::memory::{format_bytes, get_system_memory_info};
+use crate::system::uptime::format_uptime;
 
 /// Renders the UI to the terminal
 pub fn render(stdout: &mut io::Stdout, app: &mut App) -> io::Result<()> {
@@ -134,8 +135,8 @@ fn render_filter_bar(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Re
 /// Renders column headers
 fn render_column_headers(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
     let header = format!(
-        " {:>7}  {:>8}  {:>7}  {:>10}  {:>6}  {:>10}  {:>10}  {}",
-        "PID", "Priority", "Threads", "Memory", "CPU%", "Disk Read", "Disk Write", "Name"
+        " {:>7}  {:>8}  {:>5}  {:>9}  {:>10}  {:>6}  {:>9}  {:>9}  {}",
+        "PID", "Priority", "Thrd", "Uptime", "Memory", "CPU%", "Read/s", "Write/s", "Name"
     );
     execute!(
         stdout,
@@ -185,18 +186,19 @@ fn render_process_list(
 
         // Build the line parts
         let prefix = format!(
-            " {:>7}  {:>8}  {:>7}  {:>10}  ",
+            " {:>7}  {:>8}  {:>5}  {:>9}  {:>10}  ",
             entry.info.pid,
             entry.priority.short_name(),
             entry.thread_count,
+            format_uptime(entry.uptime_seconds),
             format_bytes(entry.memory_bytes),
         );
         let cpu_str = format!("{:>5.1}%", entry.cpu_percent);
         let suffix = format!(
-            "  {:>10}  {:>10}  {}",
-            format_bytes(entry.disk_read),
-            format_bytes(entry.disk_write),
-            truncate_string(&entry.info.name, width.saturating_sub(75))
+            "  {:>9}  {:>9}  {}",
+            format_rate(entry.disk_read_rate),
+            format_rate(entry.disk_write_rate),
+            truncate_string(&entry.info.name, width.saturating_sub(80))
         );
 
         if is_selected {
@@ -301,5 +303,20 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         format!("{}...", &s[..max_len - 3])
     } else {
         s[..max_len].to_string()
+    }
+}
+
+/// Formats a byte rate (bytes/sec) as a human-readable string
+fn format_rate(bytes_per_sec: f64) -> String {
+    if bytes_per_sec < 1.0 {
+        "0 B/s".to_string()
+    } else if bytes_per_sec < 1024.0 {
+        format!("{:.0} B/s", bytes_per_sec)
+    } else if bytes_per_sec < 1024.0 * 1024.0 {
+        format!("{:.1} KB/s", bytes_per_sec / 1024.0)
+    } else if bytes_per_sec < 1024.0 * 1024.0 * 1024.0 {
+        format!("{:.1} MB/s", bytes_per_sec / (1024.0 * 1024.0))
+    } else {
+        format!("{:.1} GB/s", bytes_per_sec / (1024.0 * 1024.0 * 1024.0))
     }
 }

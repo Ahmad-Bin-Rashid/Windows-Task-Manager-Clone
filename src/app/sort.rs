@@ -8,9 +8,10 @@ pub enum SortColumn {
     Name,
     Pid,
     Priority,
-    DiskRead,
-    DiskWrite,
     Threads,
+    Uptime,
+    DiskReadRate,
+    DiskWriteRate,
 }
 
 impl SortColumn {
@@ -22,9 +23,10 @@ impl SortColumn {
             SortColumn::Name => SortColumn::Pid,
             SortColumn::Pid => SortColumn::Priority,
             SortColumn::Priority => SortColumn::Threads,
-            SortColumn::Threads => SortColumn::DiskRead,
-            SortColumn::DiskRead => SortColumn::DiskWrite,
-            SortColumn::DiskWrite => SortColumn::Cpu,
+            SortColumn::Threads => SortColumn::Uptime,
+            SortColumn::Uptime => SortColumn::DiskReadRate,
+            SortColumn::DiskReadRate => SortColumn::DiskWriteRate,
+            SortColumn::DiskWriteRate => SortColumn::Cpu,
         }
     }
 
@@ -37,8 +39,9 @@ impl SortColumn {
             SortColumn::Pid => "PID",
             SortColumn::Priority => "Priority",
             SortColumn::Threads => "Threads",
-            SortColumn::DiskRead => "Disk Read",
-            SortColumn::DiskWrite => "Disk Write",
+            SortColumn::Uptime => "Uptime",
+            SortColumn::DiskReadRate => "Read/s",
+            SortColumn::DiskWriteRate => "Write/s",
         }
     }
 }
