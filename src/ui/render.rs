@@ -203,6 +203,10 @@ fn render_process_list(
             String::new()
         };
         
+        // Check if process is suspended
+        let is_suspended = app.is_process_suspended(entry.info.pid);
+        let suspend_indicator = if is_suspended { "[S] " } else { "" };
+        
         let prefix = format!(
             " {:>7}  {:>8}  {:>5}  {:>6}  {:>9}  {:>10}  ",
             entry.info.pid,
@@ -214,13 +218,14 @@ fn render_process_list(
         );
         let cpu_str = format!("{:>5.1}%", entry.cpu_percent);
         
-        // Calculate available space for name with tree prefix
-        let name_space = width.saturating_sub(90 + tree_prefix.len());
+        // Calculate available space for name with tree prefix and suspend indicator
+        let name_space = width.saturating_sub(90 + tree_prefix.len() + suspend_indicator.len());
         let suffix = format!(
-            "  {:>9}  {:>9}  {}{}",
+            "  {:>9}  {:>9}  {}{}{}",
             format_rate(entry.disk_read_rate),
             format_rate(entry.disk_write_rate),
             tree_prefix,
+            suspend_indicator,
             truncate_string(&entry.info.name, name_space)
         );
 
@@ -314,21 +319,38 @@ fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result
         )?;
     }
 
-    // Help line
-    let help_text = if app.confirm_kill_mode {
-        " Y:Confirm Kill | N/Esc:Cancel"
+    // Help line - show two lines for all controls
+    if app.confirm_kill_mode {
+        execute!(
+            stdout,
+            SetBackgroundColor(Color::DarkRed),
+            SetForegroundColor(Color::White),
+            Print(format!("{:width$}", " Kill process? Y:Confirm | N/Esc:Cancel", width = width)),
+            ResetColor,
+        )?;
     } else if app.filter_mode {
-        " Type to filter | Enter:Apply | Esc:Cancel"
+        execute!(
+            stdout,
+            SetBackgroundColor(Color::DarkYellow),
+            SetForegroundColor(Color::Black),
+            Print(format!("{:width$}", " Type to filter | Enter:Apply | Esc:Cancel", width = width)),
+            ResetColor,
+        )?;
     } else {
-        " q:Quit | Enter:Details | k:Kill | t:Tree | s:Sort | /:Filter | [/]:Speed"
-    };
-    execute!(
-        stdout,
-        SetBackgroundColor(Color::DarkBlue),
-        SetForegroundColor(Color::White),
-        Print(format!("{:width$}", help_text, width = width)),
-        ResetColor,
-    )
+        // Two-part help: essential keys
+        let help_line = format!(
+            " q:Quit | Enter:Details | k:Kill | p:Suspend | t:Tree | s:Sort | r:Reverse | +/-:Priority | [/]:Speed | /:Filter"
+        );
+        execute!(
+            stdout,
+            SetBackgroundColor(Color::DarkBlue),
+            SetForegroundColor(Color::White),
+            Print(format!("{:width$}", truncate_string(&help_line, width), width = width)),
+            ResetColor,
+        )?;
+    }
+    
+    Ok(())
 }
 
 /// Truncates a string to fit within a given width

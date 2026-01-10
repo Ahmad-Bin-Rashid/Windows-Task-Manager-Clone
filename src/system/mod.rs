@@ -11,3 +11,4 @@ pub mod priority;
 pub mod uptime;
 pub mod path;
 pub mod details;
+pub mod suspend;

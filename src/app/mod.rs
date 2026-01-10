@@ -594,6 +594,37 @@ impl App {
     pub fn jump_to_end(&mut self) {
         self.selected_index = self.filtered_processes.len().saturating_sub(1);
     }
+
+    /// Toggle suspend/resume for the selected process
+    pub fn toggle_suspend(&mut self) {
+        if self.filtered_processes.is_empty() {
+            return;
+        }
+
+        let process = &self.filtered_processes[self.selected_index];
+        let pid = process.info.pid;
+        let name = process.info.name.clone();
+
+        use crate::system::suspend;
+
+        match suspend::toggle_suspend(pid) {
+            Ok(is_suspended) => {
+                if is_suspended {
+                    self.error_message = Some(format!("Suspended: {} (PID {})", name, pid));
+                } else {
+                    self.error_message = Some(format!("Resumed: {} (PID {})", name, pid));
+                }
+            }
+            Err(e) => {
+                self.error_message = Some(format!("Failed: {}", e));
+            }
+        }
+    }
+
+    /// Check if a process is suspended
+    pub fn is_process_suspended(&self, pid: u32) -> bool {
+        crate::system::suspend::is_process_suspended(pid)
+    }
 }
 
 impl Default for App {

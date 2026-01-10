@@ -7,6 +7,7 @@
 //! - q: Quit
 //! - Enter: View process details
 //! - k: Kill selected process (with confirmation)
+//! - p: Suspend/Resume selected process
 //! - t: Toggle tree view (show parent-child hierarchy)
 //! - +/-: Raise/lower process priority
 //! - s: Cycle sort column
@@ -174,6 +175,9 @@ fn handle_normal_keys(
         KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
         KeyCode::Char('k') | KeyCode::Char('K') => {
             app.request_kill();
+        }
+        KeyCode::Char('p') | KeyCode::Char('P') => {
+            app.toggle_suspend();
         }
         KeyCode::Char('+') | KeyCode::Char('=') => {
             app.raise_priority();
