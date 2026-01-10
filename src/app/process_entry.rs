@@ -28,4 +28,8 @@ pub struct ProcessEntry {
     pub start_time: Option<u64>,
     /// Process uptime in seconds
     pub uptime_seconds: u64,
+    /// Full executable path
+    pub path: Option<String>,
+    /// Number of open handles
+    pub handle_count: u32,
 }

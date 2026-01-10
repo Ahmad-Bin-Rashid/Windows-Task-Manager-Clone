@@ -15,6 +15,7 @@ use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_T
 use crate::system::cpu::CpuTracker;
 use crate::system::disk::get_process_disk_info;
 use crate::system::memory::get_process_memory_info;
+use crate::system::path::{get_process_path, get_process_handle_count};
 use crate::system::priority::{get_process_priority, set_process_priority};
 use crate::system::processes::enumerate_processes;
 use crate::system::uptime::{get_process_start_time, calculate_uptime_seconds};
@@ -146,6 +147,10 @@ impl App {
                     .map(|st| calculate_uptime_seconds(st))
                     .unwrap_or(0);
 
+                // Get process path and handle count
+                let path = get_process_path(pid);
+                let handle_count = get_process_handle_count(pid);
+
                 ProcessEntry {
                     info,
                     cpu_percent,
@@ -158,6 +163,8 @@ impl App {
                     thread_count,
                     start_time,
                     uptime_seconds,
+                    path,
+                    handle_count,
                 }
             })
             .collect();
@@ -196,6 +203,7 @@ impl App {
                 SortColumn::Pid => a.info.pid.cmp(&b.info.pid),
                 SortColumn::Priority => b.priority.cmp(&a.priority),
                 SortColumn::Threads => b.thread_count.cmp(&a.thread_count),
+                SortColumn::Handles => b.handle_count.cmp(&a.handle_count),
                 SortColumn::Uptime => b.uptime_seconds.cmp(&a.uptime_seconds),
                 SortColumn::DiskReadRate => b.disk_read_rate
                     .partial_cmp(&a.disk_read_rate)

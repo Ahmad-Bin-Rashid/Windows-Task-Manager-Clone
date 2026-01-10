@@ -135,8 +135,8 @@ fn render_filter_bar(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Re
 /// Renders column headers
 fn render_column_headers(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
     let header = format!(
-        " {:>7}  {:>8}  {:>5}  {:>9}  {:>10}  {:>6}  {:>9}  {:>9}  {}",
-        "PID", "Priority", "Thrd", "Uptime", "Memory", "CPU%", "Read/s", "Write/s", "Name"
+        " {:>7}  {:>8}  {:>5}  {:>6}  {:>9}  {:>10}  {:>6}  {:>9}  {:>9}  {}",
+        "PID", "Priority", "Thrd", "Hndls", "Uptime", "Memory", "CPU%", "Read/s", "Write/s", "Name"
     );
     execute!(
         stdout,
@@ -186,10 +186,11 @@ fn render_process_list(
 
         // Build the line parts
         let prefix = format!(
-            " {:>7}  {:>8}  {:>5}  {:>9}  {:>10}  ",
+            " {:>7}  {:>8}  {:>5}  {:>6}  {:>9}  {:>10}  ",
             entry.info.pid,
             entry.priority.short_name(),
             entry.thread_count,
+            entry.handle_count,
             format_uptime(entry.uptime_seconds),
             format_bytes(entry.memory_bytes),
         );
@@ -198,7 +199,7 @@ fn render_process_list(
             "  {:>9}  {:>9}  {}",
             format_rate(entry.disk_read_rate),
             format_rate(entry.disk_write_rate),
-            truncate_string(&entry.info.name, width.saturating_sub(80))
+            truncate_string(&entry.info.name, width.saturating_sub(90))
         );
 
         if is_selected {
@@ -275,7 +276,20 @@ fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result
             Print("\r\n")
         )?;
     } else {
-        execute!(stdout, Print("\r\n"))?;
+        // Show selected process path
+        let path_display = app
+            .filtered_processes
+            .get(app.selected_index)
+            .and_then(|p| p.path.as_ref())
+            .map(|p| format!(" Path: {}", truncate_string(p, width.saturating_sub(10))))
+            .unwrap_or_else(|| " Path: <access denied>".to_string());
+        execute!(
+            stdout,
+            SetForegroundColor(Color::DarkGrey),
+            Print(format!("{:width$}", path_display, width = width)),
+            ResetColor,
+            Print("\r\n")
+        )?;
     }
 
     // Help line
