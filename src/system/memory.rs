@@ -17,6 +17,7 @@ use windows::Win32::Foundation::CloseHandle;
 
 /// System-wide memory statistics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SystemMemoryInfo {
     /// Percentage of physical memory in use (0-100)
     pub memory_load_percent: u32,
@@ -39,8 +40,9 @@ impl SystemMemoryInfo {
     pub fn used_physical(&self) -> u64 {
         self.total_physical - self.available_physical
     }
-    
+
     /// Returns used memory as a formatted string (e.g., "8.5 GB / 16.0 GB")
+    #[allow(dead_code)]
     pub fn format_usage(&self) -> String {
         format!(
             "{:.1} GB / {:.1} GB ({:.0}%)",
@@ -53,6 +55,7 @@ impl SystemMemoryInfo {
 
 /// Per-process memory statistics
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct ProcessMemoryInfo {
     /// Working set size in bytes (physical memory used)
     pub working_set: u64,
@@ -64,12 +67,14 @@ pub struct ProcessMemoryInfo {
 
 impl ProcessMemoryInfo {
     /// Returns working set as a formatted string (e.g., "125.4 MB")
+    #[allow(dead_code)]
     pub fn format_working_set(&self) -> String {
         format_bytes(self.working_set)
     }
 }
 
 /// Converts bytes to gigabytes
+#[allow(dead_code)]
 fn bytes_to_gb(bytes: u64) -> f64 {
     bytes as f64 / (1024.0 * 1024.0 * 1024.0)
 }

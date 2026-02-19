@@ -5,4 +5,8 @@
 
 mod handles;
 
-pub use handles::{ProcessHandle, SnapshotHandle};
+pub use handles::SnapshotHandle;
+
+// ProcessHandle is available for future use
+#[allow(unused_imports)]
+pub use handles::ProcessHandle;

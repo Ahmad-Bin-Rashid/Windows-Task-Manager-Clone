@@ -5,6 +5,7 @@ use crate::system::processes::ProcessInfo;
 
 /// Process entry with calculated metrics
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProcessEntry {
     /// Basic process information
     pub info: ProcessInfo,

@@ -12,6 +12,7 @@ use crate::ffi::SnapshotHandle;
 
 /// Information about a single process
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProcessInfo {
     /// Process ID
     pub pid: u32,

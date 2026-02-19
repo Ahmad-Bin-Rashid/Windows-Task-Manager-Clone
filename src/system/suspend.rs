@@ -56,6 +56,7 @@ fn mark_resumed(pid: u32) {
 }
 
 /// Remove a PID from tracking (e.g., when process terminates)
+#[allow(dead_code)]
 pub fn untrack_process(pid: u32) {
     init_suspended_pids();
     let mut guard = SUSPENDED_PIDS.lock().unwrap();

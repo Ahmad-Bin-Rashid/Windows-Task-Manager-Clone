@@ -34,6 +34,7 @@ pub struct ProcessCpuSnapshot {
 
 /// Holds CPU snapshots for calculating deltas
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct CpuTracker {
     /// Previous system CPU snapshot
     prev_system: SystemCpuSnapshot,

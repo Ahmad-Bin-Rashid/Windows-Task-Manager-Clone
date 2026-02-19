@@ -88,6 +88,7 @@ pub fn get_process_handle_count(pid: u32) -> u32 {
 }
 
 /// Extracts just the filename from a full path
+#[allow(dead_code)]
 pub fn path_to_filename(path: &str) -> &str {
     path.rsplit('\\').next().unwrap_or(path)
 }

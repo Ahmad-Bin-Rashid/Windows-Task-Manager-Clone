@@ -11,6 +11,7 @@ use windows::Win32::System::Threading::{
 
 /// Per-process disk I/O statistics
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct ProcessDiskInfo {
     /// Total bytes read from disk
     pub read_bytes: u64,
@@ -24,6 +25,7 @@ pub struct ProcessDiskInfo {
 
 impl ProcessDiskInfo {
     /// Returns total I/O (read + write) in bytes
+    #[allow(dead_code)]
     pub fn total_io(&self) -> u64 {
         self.read_bytes + self.write_bytes
     }

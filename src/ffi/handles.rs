@@ -7,14 +7,14 @@ use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, TH32CS_SNAPPROCESS,
 };
-use windows::Win32::System::Threading::{
-    OpenProcess, PROCESS_ACCESS_RIGHTS,
-};
+use windows::Win32::System::Threading::{OpenProcess, PROCESS_ACCESS_RIGHTS};
 
 /// A safe wrapper around a Windows process HANDLE.
 /// Automatically closes the handle when dropped.
+#[allow(dead_code)]
 pub struct ProcessHandle(HANDLE);
 
+#[allow(dead_code)]
 impl ProcessHandle {
     /// Opens a process by PID with the specified access rights.
     ///

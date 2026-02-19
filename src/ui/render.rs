@@ -386,7 +386,7 @@ fn render_detail_view(
     width: usize,
     height: usize,
 ) -> io::Result<()> {
-    let details = match &app.process_details {
+    let details = match &app.detail_view_data {
         Some(d) => d,
         None => {
             app.detail_view_mode = false;
@@ -490,12 +490,12 @@ fn render_detail_view(
         ResetColor,
         Print(format!("{:width$}\r\n", "", width = width.saturating_sub(70))),
     )?;
-    
+
     // Render content lines
-    for (i, (color, line)) in lines.iter()
+    for (_i, (color, line)) in lines.iter()
         .skip(app.detail_scroll_offset)
         .take(visible_rows)
-        .enumerate() 
+        .enumerate()
     {
         let display_line = truncate_string(line, width.saturating_sub(1));
         execute!(
