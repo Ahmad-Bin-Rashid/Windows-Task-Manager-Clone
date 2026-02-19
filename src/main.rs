@@ -130,7 +130,9 @@ fn dispatch_key_event(
     code: crossterm::event::KeyCode,
     modifiers: crossterm::event::KeyModifiers,
 ) -> io::Result<KeyAction> {
-    if app.confirm_kill_mode {
+    if app.show_help {
+        Ok(app.handle_help_key(code))
+    } else if app.confirm_kill_mode {
         Ok(app.handle_confirm_kill_key(code))
     } else if app.detail_view_mode {
         app.handle_detail_view_key(code)

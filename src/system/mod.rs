@@ -3,12 +3,13 @@
 //! This module provides safe abstractions over Win32 system APIs
 //! for gathering task manager-style information.
 
-pub mod processes;
-pub mod memory;
+pub mod admin;
 pub mod cpu;
-pub mod disk;
-pub mod priority;
-pub mod uptime;
-pub mod path;
 pub mod details;
+pub mod disk;
+pub mod memory;
+pub mod path;
+pub mod priority;
+pub mod processes;
 pub mod suspend;
+pub mod uptime;

@@ -23,6 +23,20 @@ pub enum KeyAction {
 }
 
 impl App {
+    /// Handles key events when help overlay is shown
+    pub fn handle_help_key(&mut self, code: KeyCode) -> KeyAction {
+        match code {
+            // Any key closes help
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char('?') | KeyCode::Char('q') => {
+                self.show_help = false;
+            }
+            _ => {
+                self.show_help = false;
+            }
+        }
+        KeyAction::Continue
+    }
+
     /// Handles key events in confirm kill mode
     pub fn handle_confirm_kill_key(&mut self, code: KeyCode) -> KeyAction {
         match code {
@@ -136,6 +150,9 @@ impl App {
             }
             KeyCode::Char('/') => {
                 self.filter_mode = true;
+            }
+            KeyCode::Char('?') => {
+                self.show_help = true;
             }
             KeyCode::Esc => {
                 self.filter.clear();

@@ -69,6 +69,8 @@ pub struct App {
     pub detail_scroll_offset: usize,
     /// Whether we're in tree view mode
     pub tree_view_mode: bool,
+    /// Whether to show the help overlay
+    pub show_help: bool,
 }
 
 impl App {
@@ -98,6 +100,7 @@ impl App {
             detail_view_data: None,
             detail_scroll_offset: 0,
             tree_view_mode: false,
+            show_help: false,
         }
     }
 
@@ -213,8 +216,15 @@ impl App {
             .collect();
 
         self.prev_disk_io = new_disk_io;
-        self.sort_processes();
-        self.apply_filter();
+        
+        // Apply sorting/tree structure and filtering
+        if self.tree_view_mode {
+            // Tree view handles its own structure and calls apply_filter
+            self.build_process_tree();
+        } else {
+            self.sort_processes();
+            self.apply_filter();
+        }
 
         let active_pids: Vec<u32> = self.processes.iter().map(|p| p.info.pid).collect();
         self.cpu_tracker.cleanup_stale_processes(&active_pids);
