@@ -93,7 +93,7 @@ impl App {
             pending_kill_name: None,
             prev_disk_io: HashMap::new(),
             last_refresh_time: Instant::now(),
-            refresh_interval_ms: 1000,
+            refresh_interval_ms: 2000,
             detail_view_mode: false,
             detail_view_pid: None,
             detail_view_name: None,
@@ -102,6 +102,23 @@ impl App {
             tree_view_mode: false,
             show_help: false,
         }
+    }
+
+    /// Creates a new App instance configured with command-line arguments
+    pub fn with_args(args: &super::cli::Args) -> Self {
+        let mut app = Self::new();
+        
+        // Apply CLI configuration
+        app.refresh_interval_ms = args.refresh;
+        app.sort_column = args.sort;
+        app.sort_ascending = args.ascending;
+        app.tree_view_mode = args.tree;
+        
+        if let Some(ref filter) = args.filter {
+            app.filter = filter.clone();
+        }
+        
+        app
     }
 
     /// Increase refresh interval (slower refresh)

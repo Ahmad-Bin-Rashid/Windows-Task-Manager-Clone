@@ -3,6 +3,37 @@
 //! A command-line task manager that displays running processes, CPU usage,
 //! and memory statistics using raw Win32 API calls via the `windows` crate.
 //!
+//! # Usage
+//!
+//! ```
+//! task_manager_clone [OPTIONS]
+//!
+//! Options:
+//!   -r, --refresh <MS>    Refresh interval in milliseconds [default: 2000]
+//!   -f, --filter <NAME>   Initial filter string to match process names
+//!   -s, --sort <COLUMN>   Initial sort column [default: cpu]
+//!   -a, --ascending       Sort in ascending order (default is descending)
+//!   -t, --tree            Start in tree view mode
+//!   -h, --help            Print help
+//!   -V, --version         Print version
+//! ```
+//!
+//! # Examples
+//!
+//! ```
+//! # Start with default settings
+//! task_manager_clone
+//!
+//! # Start with 500ms refresh rate
+//! task_manager_clone -r 500
+//!
+//! # Start filtered to chrome processes, sorted by memory
+//! task_manager_clone -f chrome -s memory
+//!
+//! # Start in tree view mode
+//! task_manager_clone --tree
+//! ```
+//!
 //! # Controls
 //!
 //! | Key | Action |
@@ -20,6 +51,7 @@
 //! | `↑`/`↓` | Navigate process list |
 //! | `PgUp`/`PgDn` | Scroll by page |
 //! | `Home`/`End` | Jump to start/end |
+//! | `?` | Show help overlay |
 
 mod app;
 mod ffi;
@@ -39,11 +71,18 @@ use crossterm::{
     },
 };
 
-use app::{App, KeyAction};
+use app::{cli, export_to_csv, App, KeyAction};
 use ui::render;
 
 fn main() -> io::Result<()> {
-    let mut app = App::new();
+    // Parse command-line arguments
+    let args = cli::parse_args();
+    let mut app = App::with_args(&args);
+    
+    // Handle export mode (non-interactive)
+    if args.export {
+        return run_export_mode(&mut app);
+    }
     
     // Set up terminal and run main loop
     setup_terminal()?;
@@ -52,6 +91,31 @@ fn main() -> io::Result<()> {
     
     println!("Task Manager closed.");
     result
+}
+
+/// Runs in export mode: loads processes, exports to CSV, and exits
+fn run_export_mode(app: &mut App) -> io::Result<()> {
+    // Load process data
+    app.refresh();
+    
+    // Get the appropriate process list (filtered or all)
+    let processes = if app.filtered_processes.is_empty() && app.filter.is_empty() {
+        &app.processes
+    } else {
+        &app.filtered_processes
+    };
+    
+    // Export to CSV
+    match export_to_csv(processes) {
+        Ok(path) => {
+            println!("Exported {} processes to {}", processes.len(), path.display());
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Export failed: {}", e);
+            Err(e)
+        }
+    }
 }
 
 /// Configures the terminal for TUI mode
@@ -117,6 +181,12 @@ fn run_event_loop(app: &mut App) -> io::Result<()> {
         // Time-based refresh
         if last_refresh.elapsed() >= Duration::from_millis(app.refresh_interval_ms) {
             app.refresh();
+            
+            // Also refresh detail view if active
+            if app.detail_view_mode {
+                app.refresh_detail_view();
+            }
+            
             last_refresh = Instant::now();
         }
     }

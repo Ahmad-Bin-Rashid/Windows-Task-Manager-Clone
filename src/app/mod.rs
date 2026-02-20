@@ -9,8 +9,12 @@
 //! - `detail_view` - Process details panel
 //! - `tree_builder` - Process hierarchy tree
 //! - `input` - Keyboard event handling
+//! - `cli` - Command-line argument parsing
+//! - `export` - CSV export functionality
 
+pub mod cli;
 mod detail_view;
+mod export;
 mod input;
 mod navigation;
 mod process_entry;
@@ -20,6 +24,7 @@ mod state;
 mod tree_builder;
 
 // Re-export public types
+pub use export::export_to_csv;
 pub use input::KeyAction;
 pub use process_entry::ProcessEntry;
 pub use sort::SortColumn;

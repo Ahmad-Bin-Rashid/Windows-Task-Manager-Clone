@@ -142,6 +142,9 @@ impl App {
             KeyCode::Char('t') | KeyCode::Char('T') => {
                 self.toggle_tree_view();
             }
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                self.export_processes();
+            }
             KeyCode::Char('[') => {
                 self.increase_refresh_interval();
             }

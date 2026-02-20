@@ -51,6 +51,8 @@ pub fn render_detail_view(
     lines.push((Color::White, format!("  Memory:      {}", format_bytes(details.memory_bytes))));
     lines.push((Color::White, format!("  Threads:     {}", details.thread_count)));
     lines.push((Color::White, format!("  Handles:     {}", details.handle_count)));
+    lines.push((Color::White, format!("  CPU Affinity: {}", 
+        details.cpu_affinity.as_deref().unwrap_or("Unknown"))));
     lines.push((Color::White, format!("  Disk Read:   {}", format_rate(details.disk_read_rate))));
     lines.push((Color::White, format!("  Disk Write:  {}", format_rate(details.disk_write_rate))));
     lines.push((Color::Reset, String::new()));

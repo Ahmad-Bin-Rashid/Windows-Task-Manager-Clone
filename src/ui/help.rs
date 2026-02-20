@@ -34,6 +34,7 @@ const HELP_LINES: &[(&str, &str)] = &[
     ("  ]", "Speed up refresh"),
     ("", ""),
     ("OTHER", ""),
+    ("  e", "Export to CSV file"),
     ("  ?", "Show/hide this help"),
     ("  q", "Quit application"),
     ("  Ctrl+C", "Quit application"),

@@ -90,6 +90,8 @@ pub struct ProcessDetails {
     pub disk_read_rate: f64,
     /// Disk write rate
     pub disk_write_rate: f64,
+    /// CPU affinity (which cores can be used)
+    pub cpu_affinity: Option<String>,
 }
 
 /// Get loaded modules for a process

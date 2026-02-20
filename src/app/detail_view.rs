@@ -1,6 +1,7 @@
 //! Detail view management
 
 use super::state::App;
+use crate::system::affinity::get_process_affinity;
 use crate::system::details::ProcessDetails;
 
 impl App {
@@ -20,6 +21,7 @@ impl App {
         let tcp_connections = get_process_tcp_connections(pid);
         let udp_endpoints = get_process_udp_endpoints(pid);
         let command_line = get_process_command_line(pid);
+        let cpu_affinity = get_process_affinity(pid).map(|a| a.format());
 
         let details = ProcessDetails {
             pid,
@@ -37,6 +39,7 @@ impl App {
             uptime_seconds: process.uptime_seconds,
             disk_read_rate: process.disk_read_rate,
             disk_write_rate: process.disk_write_rate,
+            cpu_affinity,
         };
 
         self.detail_view_mode = true;
@@ -53,6 +56,52 @@ impl App {
         self.detail_view_name = None;
         self.detail_view_data = None;
         self.detail_scroll_offset = 0;
+    }
+
+    /// Refreshes the detail view data for the currently viewed process
+    pub fn refresh_detail_view(&mut self) {
+        let pid = match self.detail_view_pid {
+            Some(pid) => pid,
+            None => return,
+        };
+
+        // Find the process in the updated list to get current metrics
+        let process = self.processes.iter().find(|p| p.info.pid == pid);
+        
+        if let Some(process) = process {
+            use crate::system::details::*;
+
+            let modules = get_process_modules(pid);
+            let tcp_connections = get_process_tcp_connections(pid);
+            let udp_endpoints = get_process_udp_endpoints(pid);
+            let command_line = get_process_command_line(pid);
+            let cpu_affinity = get_process_affinity(pid).map(|a| a.format());
+
+            let details = ProcessDetails {
+                pid,
+                name: process.info.name.clone(),
+                path: process.path.clone(),
+                command_line,
+                modules,
+                tcp_connections,
+                udp_endpoints,
+                cpu_percent: process.cpu_percent,
+                memory_bytes: process.memory_bytes,
+                thread_count: process.thread_count,
+                handle_count: process.handle_count,
+                priority: process.priority.short_name().to_string(),
+                uptime_seconds: process.uptime_seconds,
+                disk_read_rate: process.disk_read_rate,
+                disk_write_rate: process.disk_write_rate,
+                cpu_affinity,
+            };
+
+            self.detail_view_data = Some(details);
+        } else {
+            // Process no longer exists - close detail view
+            self.error_message = Some("Process no longer exists".to_string());
+            self.close_detail_view();
+        }
     }
 
     /// Scrolls the detail view down

@@ -4,6 +4,7 @@
 //! for gathering task manager-style information.
 
 pub mod admin;
+pub mod affinity;
 pub mod cpu;
 pub mod details;
 pub mod disk;
