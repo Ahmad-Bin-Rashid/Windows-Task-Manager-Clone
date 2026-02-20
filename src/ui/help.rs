@@ -8,6 +8,8 @@ use crossterm::{
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
 
+use crate::app::App;
+
 /// Help content definition
 const HELP_LINES: &[(&str, &str)] = &[
     ("", ""),
@@ -44,15 +46,25 @@ const HELP_LINES: &[(&str, &str)] = &[
 /// Renders the help overlay showing all keyboard shortcuts
 pub fn render_help_overlay(
     stdout: &mut io::Stdout,
+    app: &App,
     width: usize,
     height: usize,
 ) -> io::Result<()> {
     // Calculate box dimensions - use fixed width for consistent borders
     let box_width = 52;
     let inner_width = box_width - 2; // Width between left and right borders
-    let box_height = (HELP_LINES.len() + 4).min(height.saturating_sub(2));
+    
+    // Calculate available content height (minus borders, title, separator, footer hint)
+    let max_content_lines = height.saturating_sub(8); // 8 = top border + title + separator + footer hint + margins
+    let content_height = HELP_LINES.len().min(max_content_lines);
+    let box_height = content_height + 5; // +5 for borders and header/footer
+    
     let start_x = (width.saturating_sub(box_width)) / 2;
     let start_y = (height.saturating_sub(box_height)) / 2;
+    
+    // Clamp scroll offset to valid range
+    let max_scroll = HELP_LINES.len().saturating_sub(content_height);
+    let scroll_offset = app.help_scroll_offset.min(max_scroll);
 
     // Draw background fill for the whole screen (dimmed)
     for y in 0..height {
@@ -120,14 +132,14 @@ pub fn render_help_overlay(
         ResetColor
     )?;
 
-    // Draw help content
-    for (i, (key, desc)) in HELP_LINES.iter().enumerate() {
+    // Draw help content with scroll offset
+    let visible_lines: Vec<_> = HELP_LINES.iter()
+        .skip(scroll_offset)
+        .take(content_height)
+        .collect();
+    
+    for (i, (key, desc)) in visible_lines.iter().enumerate() {
         let y = start_y + 3 + i;
-        if y >= start_y + box_height - 1 {
-            break;
-        }
-
-        execute!(stdout, MoveTo(start_x as u16, y as u16))?;
 
         if key.is_empty() && desc.is_empty() {
             // Empty line
@@ -156,16 +168,22 @@ pub fn render_help_overlay(
     }
 
     // Fill remaining space in box
-    for y in (start_y + 3 + HELP_LINES.len())..(start_y + box_height - 1) {
+    for y in (start_y + 3 + visible_lines.len())..(start_y + box_height - 1) {
         draw_bordered_line(stdout, y, "", Color::White)?;
     }
 
-    // Draw bottom border with hint
+    // Draw bottom border with scroll hint
     execute!(stdout, MoveTo(start_x as u16, (start_y + box_height - 1) as u16))?;
-    let hint = " Press any key to close ";
-    let hint_padding = (inner_width.saturating_sub(hint.len())) / 2;
+    let hint = if max_scroll > 0 {
+        format!(" ↑/↓: Scroll | Esc: Close ({}/{}) ", scroll_offset + 1, max_scroll + 1)
+    } else {
+        " Esc/Enter: Close ".to_string()
+    };
+    // Calculate display width (Unicode arrows are 1 column each, not their byte length)
+    let hint_display_width = hint.chars().count();
+    let hint_padding = (inner_width.saturating_sub(hint_display_width)) / 2;
     let bottom_left = "─".repeat(hint_padding);
-    let bottom_right = "─".repeat(inner_width - hint_padding - hint.len());
+    let bottom_right = "─".repeat(inner_width.saturating_sub(hint_padding + hint_display_width));
     execute!(
         stdout,
         SetBackgroundColor(Color::DarkBlue),

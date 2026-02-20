@@ -26,13 +26,32 @@ impl App {
     /// Handles key events when help overlay is shown
     pub fn handle_help_key(&mut self, code: KeyCode) -> KeyAction {
         match code {
-            // Any key closes help
+            // Close help
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char('?') | KeyCode::Char('q') => {
                 self.show_help = false;
+                self.help_scroll_offset = 0;
             }
-            _ => {
-                self.show_help = false;
+            // Scroll up
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.help_scroll_offset = self.help_scroll_offset.saturating_sub(1);
             }
+            // Scroll down
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.help_scroll_offset = self.help_scroll_offset.saturating_add(1);
+            }
+            // Page up
+            KeyCode::PageUp => {
+                self.help_scroll_offset = self.help_scroll_offset.saturating_sub(5);
+            }
+            // Page down
+            KeyCode::PageDown => {
+                self.help_scroll_offset = self.help_scroll_offset.saturating_add(5);
+            }
+            // Home - scroll to top
+            KeyCode::Home => {
+                self.help_scroll_offset = 0;
+            }
+            _ => {}
         }
         KeyAction::Continue
     }

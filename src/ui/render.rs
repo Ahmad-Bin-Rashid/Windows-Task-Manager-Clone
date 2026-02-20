@@ -40,7 +40,7 @@ pub fn render(stdout: &mut io::Stdout, app: &mut App) -> io::Result<()> {
 
     // Dispatch based on current view mode
     if app.show_help {
-        return render_help_overlay(stdout, width, height);
+        return render_help_overlay(stdout, app, width, height);
     }
 
     if app.affinity_mode {

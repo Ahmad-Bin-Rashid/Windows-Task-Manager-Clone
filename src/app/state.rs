@@ -83,6 +83,8 @@ pub struct App {
     pub affinity_total_cores: u32,
     /// Currently selected core index in affinity dialog
     pub affinity_selected_core: usize,
+    /// Scroll offset for help overlay
+    pub help_scroll_offset: usize,
 }
 
 impl App {
@@ -119,6 +121,7 @@ impl App {
             affinity_mask: 0,
             affinity_total_cores: 0,
             affinity_selected_core: 0,
+            help_scroll_offset: 0,
         }
     }
 
