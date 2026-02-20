@@ -11,7 +11,9 @@
 //! - `input` - Keyboard event handling
 //! - `cli` - Command-line argument parsing
 //! - `export` - CSV export functionality
+//! - `affinity` - CPU affinity dialog
 
+mod affinity;
 pub mod cli;
 mod detail_view;
 mod export;

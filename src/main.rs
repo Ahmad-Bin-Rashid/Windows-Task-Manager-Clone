@@ -202,6 +202,8 @@ fn dispatch_key_event(
 ) -> io::Result<KeyAction> {
     if app.show_help {
         Ok(app.handle_help_key(code))
+    } else if app.affinity_mode {
+        Ok(app.handle_affinity_key(code))
     } else if app.confirm_kill_mode {
         Ok(app.handle_confirm_kill_key(code))
     } else if app.detail_view_mode {

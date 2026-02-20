@@ -1,12 +1,13 @@
 //! CPU affinity management using Win32 APIs
 //!
-//! This module provides functions to get process CPU affinity,
+//! This module provides functions to get and set process CPU affinity,
 //! which determines which CPU cores a process is allowed to use.
 
 use windows::Win32::Foundation::CloseHandle;
 use windows::Win32::System::SystemInformation::GetSystemInfo;
 use windows::Win32::System::Threading::{
-    GetProcessAffinityMask, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    GetProcessAffinityMask, OpenProcess, SetProcessAffinityMask,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION,
 };
 
 /// CPU affinity information for a process
@@ -105,5 +106,65 @@ pub fn get_process_affinity(pid: u32) -> Option<CpuAffinity> {
             total_cores,
             core_list,
         })
+    }
+}
+
+/// Set CPU affinity for a process
+/// 
+/// # Arguments
+/// * `pid` - Process ID
+/// * `core_mask` - Bitmask of cores to allow (bit 0 = core 0, bit 1 = core 1, etc.)
+///
+/// # Returns
+/// * `Ok(())` - Affinity was set successfully
+/// * `Err(String)` - Error message
+pub fn set_process_affinity(pid: u32, core_mask: usize) -> Result<(), String> {
+    // Validate that at least one core is selected
+    if core_mask == 0 {
+        return Err("At least one core must be selected".to_string());
+    }
+
+    // Skip system processes
+    if pid == 0 || pid == 4 {
+        return Err("Cannot modify system process affinity".to_string());
+    }
+
+    unsafe {
+        // Need PROCESS_SET_INFORMATION to change affinity
+        let handle = OpenProcess(
+            PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION,
+            false,
+            pid,
+        );
+
+        if handle.is_err() {
+            return Err("Access denied - try running as Administrator".to_string());
+        }
+
+        let handle = handle.unwrap();
+        if handle.is_invalid() {
+            return Err("Failed to open process".to_string());
+        }
+
+        // Get system mask to validate the requested mask
+        let mut _process_mask: usize = 0;
+        let mut system_mask: usize = 0;
+        let _ = GetProcessAffinityMask(handle, &mut _process_mask, &mut system_mask);
+
+        // Ensure requested mask is subset of system mask
+        let valid_mask = core_mask & system_mask;
+        if valid_mask == 0 {
+            let _ = CloseHandle(handle);
+            return Err("Invalid core selection".to_string());
+        }
+
+        let result = SetProcessAffinityMask(handle, valid_mask);
+        let _ = CloseHandle(handle);
+
+        if result.is_err() {
+            return Err("Failed to set affinity - access denied".to_string());
+        }
+
+        Ok(())
     }
 }

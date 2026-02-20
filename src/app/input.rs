@@ -102,9 +102,44 @@ impl App {
             KeyCode::End => {
                 self.detail_scroll_offset = usize::MAX; // Will be clamped during render
             }
+            KeyCode::Char('a') | KeyCode::Char('A') => {
+                // Open affinity dialog
+                self.open_affinity_dialog();
+            }
             _ => {}
         }
         Ok(KeyAction::Continue)
+    }
+
+    /// Handles key events in affinity edit mode
+    pub fn handle_affinity_key(&mut self, code: KeyCode) -> KeyAction {
+        match code {
+            KeyCode::Esc => {
+                self.close_affinity_dialog();
+            }
+            KeyCode::Enter => {
+                self.apply_affinity();
+            }
+            KeyCode::Left => {
+                self.affinity_move_left();
+            }
+            KeyCode::Right => {
+                self.affinity_move_right();
+            }
+            KeyCode::Char(' ') => {
+                self.toggle_affinity_core();
+            }
+            KeyCode::Char('a') | KeyCode::Char('A') => {
+                // Select all cores
+                self.select_all_cores();
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                // Select none (single core)
+                self.select_single_core();
+            }
+            _ => {}
+        }
+        KeyAction::Continue
     }
 
     /// Handles key events in normal mode (process list).

@@ -155,7 +155,7 @@ pub fn render_detail_view(
         Print("\r\n"),
         SetBackgroundColor(Color::DarkMagenta),
         SetForegroundColor(Color::White),
-        Print(format!("{:width$}", " Esc/Enter: Back to process list  |  k: Kill process", width = width)),
+        Print(format!("{:width$}", " Esc/Enter: Back to process list  |  k: Kill process  |  a: CPU affinity", width = width)),
         ResetColor,
     )?;
     

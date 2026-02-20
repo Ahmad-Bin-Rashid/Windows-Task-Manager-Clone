@@ -71,6 +71,18 @@ pub struct App {
     pub tree_view_mode: bool,
     /// Whether to show the help overlay
     pub show_help: bool,
+    /// Whether we're in affinity edit mode
+    pub affinity_mode: bool,
+    /// PID of process being edited for affinity
+    pub affinity_pid: Option<u32>,
+    /// Name of process being edited for affinity
+    pub affinity_name: Option<String>,
+    /// Current core selection bitmask for affinity dialog
+    pub affinity_mask: usize,
+    /// Total number of system cores
+    pub affinity_total_cores: u32,
+    /// Currently selected core index in affinity dialog
+    pub affinity_selected_core: usize,
 }
 
 impl App {
@@ -101,6 +113,12 @@ impl App {
             detail_scroll_offset: 0,
             tree_view_mode: false,
             show_help: false,
+            affinity_mode: false,
+            affinity_pid: None,
+            affinity_name: None,
+            affinity_mask: 0,
+            affinity_total_cores: 0,
+            affinity_selected_core: 0,
         }
     }
 

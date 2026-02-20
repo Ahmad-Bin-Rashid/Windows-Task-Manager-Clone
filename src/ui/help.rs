@@ -21,6 +21,7 @@ const HELP_LINES: &[(&str, &str)] = &[
     ("  k", "Kill selected process"),
     ("  p", "Suspend/Resume process"),
     ("  +/-", "Raise/Lower priority"),
+    ("  a", "Set CPU affinity (in detail view)"),
     ("", ""),
     ("VIEW OPTIONS", ""),
     ("  s", "Cycle sort column"),

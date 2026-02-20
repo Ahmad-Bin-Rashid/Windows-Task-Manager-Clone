@@ -6,8 +6,10 @@
 //! - `process_list` - Process list rendering
 //! - `detail_view` - Detailed process information view
 //! - `help` - Help overlay
+//! - `affinity` - CPU affinity dialog
 //! - `utils` - Shared utilities
 
+mod affinity;
 mod components;
 mod detail_view;
 mod help;

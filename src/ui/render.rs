@@ -21,6 +21,7 @@ use crate::system::memory::get_system_memory_info;
 use super::components::{
     render_column_headers, render_filter_bar, render_footer, render_header, render_system_stats,
 };
+use super::affinity::render_affinity_dialog;
 use super::detail_view::render_detail_view;
 use super::help::render_help_overlay;
 use super::process_list::render_process_list;
@@ -40,6 +41,10 @@ pub fn render(stdout: &mut io::Stdout, app: &mut App) -> io::Result<()> {
     // Dispatch based on current view mode
     if app.show_help {
         return render_help_overlay(stdout, width, height);
+    }
+
+    if app.affinity_mode {
+        return render_affinity_dialog(stdout, app, width, height);
     }
 
     if app.detail_view_mode {
