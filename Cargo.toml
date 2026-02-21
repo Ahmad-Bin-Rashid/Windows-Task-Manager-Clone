@@ -2,6 +2,11 @@
 name = "task_manager_cli"
 version = "0.1.0"
 edition = "2021"
+description = "A command-line Windows Task Manager built with raw Win32 APIs"
+license = "MIT"
+readme = "README.md"
+keywords = ["windows", "task-manager", "process", "cli", "win32"]
+categories = ["command-line-utilities", "os::windows-apis"]
 
 [dependencies]
 # Windows API bindings - raw Win32 calls
