@@ -1,45 +1,56 @@
-# Windows Task Manager Clone
+# Windows Task Manager CLI
 
-A command-line Windows Task Manager clone built in Rust using raw Win32 API calls. This project demonstrates OS-level process management without relying on high-level abstractions.
+A feature-rich command-line Windows Task Manager built in Rust using raw Win32 API calls. This project demonstrates OS-level process management without relying on high-level abstractions.
+
+[![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange)](https://www.rust-lang.org/)
+[![Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-blue)](https://www.microsoft.com/windows)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ## Features
 
-- **Process Enumeration**: Lists all running processes with detailed information
-- **Real-time CPU Monitoring**: Per-process and system-wide CPU usage
-- **Memory Statistics**: Working set memory usage per process and system totals
-- **Disk I/O Tracking**: Read/write bytes for each process
-- **Thread Count**: Number of threads per process
-- **Priority Management**: View and modify process priority levels
-- **Interactive Controls**: Navigate, sort, filter, and kill processes
-- **Color-Coded Display**: CPU usage is color-coded for quick identification
-- **Kill Confirmation**: Safety dialog before terminating processes
+### Process Management
+- **Process Enumeration** - List all running processes with detailed information
+- **Kill Process** - Terminate processes with confirmation dialog
+- **Suspend/Resume** - Pause and resume process execution
+- **Priority Control** - View and modify process priority levels (Idle → Realtime)
+- **CPU Affinity** - View and set which CPU cores a process can use
+
+### Monitoring
+- **Real-time CPU Usage** - Per-process and system-wide CPU percentage
+- **Memory Statistics** - Working set memory per process and system totals
+- **Disk I/O Rates** - Read/write bytes per second for each process
+- **Thread & Handle Count** - Resource usage metrics
+- **Process Uptime** - How long each process has been running
+
+### Views & Navigation
+- **Tree View** - Display processes in parent-child hierarchy
+- **Detail View** - In-depth process info (modules, TCP/UDP connections, command line)
+- **Sortable Columns** - Sort by any column, ascending or descending
+- **Filter/Search** - Filter processes by name (case-insensitive)
+- **Scrollable List** - Navigate large process lists with keyboard
+
+### UI Features
+- **Color-Coded CPU** - Visual indication of CPU usage levels
+- **Admin Indicator** - Shows if running with elevated privileges
+- **Help Overlay** - Scrollable help screen with all keyboard shortcuts
+- **Export to CSV** - Save process list for external analysis
 
 ## Requirements
 
-- **Operating System**: Windows 10/11
+- **Operating System**: Windows 10/11 (64-bit recommended)
 - **Rust**: 1.70+ (2021 edition)
-- **Build Tools**: MSYS2 with MinGW-w64 or Visual Studio Build Tools
+- **Build Tools**: Visual Studio Build Tools or MSYS2 with MinGW-w64
 
 ## Dependencies
 
 | Crate | Version | Purpose |
 |-------|---------|---------|
-| `windows` | 0.58 | Win32 API bindings |
-| `crossterm` | 0.28 | Terminal UI rendering |
+| `windows` | 0.58 | Raw Win32 API bindings |
+| `crossterm` | 0.28 | Cross-platform terminal rendering |
 
 ## Building
 
-### Option 1: Using MSYS2 (MinGW-w64)
-
-```powershell
-# Set up PATH for MSYS2
-$env:PATH = "C:\msys64\ucrt64\bin;C:\msys64\usr\bin;$env:PATH"
-
-# Build release version
-cargo build --release
-```
-
-### Option 2: Using Visual Studio Build Tools
+### Using Visual Studio Build Tools (Recommended)
 
 ```powershell
 # Ensure MSVC toolchain is installed
@@ -49,36 +60,96 @@ rustup default stable-msvc
 cargo build --release
 ```
 
+### Using MSYS2 (MinGW-w64)
+
+```powershell
+# Set up PATH for MSYS2
+$env:PATH = "C:\msys64\ucrt64\bin;C:\msys64\usr\bin;$env:PATH"
+
+# Build release version
+cargo build --release
+```
+
 ### Output
 
-The compiled binary will be at:
 ```
-target\release\task_manager_clone.exe
+target\release\task_manager_cli.exe
 ```
 
 ## Usage
 
+### Basic Usage
+
 ```powershell
-.\target\release\task_manager_clone.exe
+.\target\release\task_manager_cli.exe
 ```
 
-### Keyboard Controls
+### Command Line Options
+
+```
+task_manager_cli [OPTIONS]
+
+Options:
+  -r, --refresh <MS>    Refresh interval in milliseconds [default: 2000]
+  -f, --filter <NAME>   Initial filter string to match process names
+  -s, --sort <COLUMN>   Initial sort column [default: cpu]
+  -a, --ascending       Sort in ascending order (default is descending)
+  -t, --tree            Start in tree view mode
+  -e, --export          Export process list to CSV and exit
+  -h, --help            Print help information
+  -V, --version         Print version
+```
+
+### Examples
+
+```powershell
+# Start with 500ms refresh rate
+.\task_manager_cli.exe -r 500
+
+# Start filtered to chrome processes, sorted by memory
+.\task_manager_cli.exe -f chrome -s memory
+
+# Start in tree view mode
+.\task_manager_cli.exe --tree
+
+# Export current processes to CSV
+.\task_manager_cli.exe --export
+```
+
+## Keyboard Controls
+
+### Navigation
 
 | Key | Action |
 |-----|--------|
-| `q` | Quit application |
-| `Ctrl+C` | Quit application |
-| `↑` / `↓` | Navigate process list |
-| `PgUp` / `PgDown` | Scroll by page |
-| `Home` / `End` | Jump to start/end |
+| `↑` / `k` | Move selection up |
+| `↓` / `j` | Move selection down |
+| `PgUp` / `PgDn` | Scroll by page |
+| `Home` / `End` | Jump to first/last process |
+
+### Process Actions
+
+| Key | Action |
+|-----|--------|
+| `Enter` / `d` | Open detail view for selected process |
 | `k` | Kill selected process (with confirmation) |
-| `Y` / `N` | Confirm/cancel kill |
+| `p` | Suspend/Resume selected process |
 | `+` / `=` | Raise process priority |
 | `-` / `_` | Lower process priority |
+| `a` | Open CPU affinity editor |
+
+### View Controls
+
+| Key | Action |
+|-----|--------|
 | `s` | Cycle sort column |
 | `r` | Reverse sort order |
+| `t` | Toggle tree view mode |
 | `/` | Enter filter mode |
-| `Esc` | Clear filter / Cancel |
+| `Esc` | Exit filter/detail/dialog |
+| `?` | Show help overlay |
+| `e` | Export to CSV |
+| `q` / `Ctrl+C` | Quit application |
 
 ### Sort Columns
 
@@ -89,67 +160,87 @@ Press `s` to cycle through:
 4. **PID** - Process ID
 5. **Priority** - Process priority class
 6. **Threads** - Thread count
-7. **Disk Read** - Total bytes read
-8. **Disk Write** - Total bytes written
-
-Press `r` to toggle ascending/descending order.
-
-### Filtering
-
-1. Press `/` to enter filter mode
-2. Type process name (case-insensitive)
-3. Press `Enter` to apply or `Esc` to cancel
-4. Press `Esc` again to clear the filter
+7. **Handles** - Handle count
+8. **Uptime** - Process running time
+9. **Read/s** - Disk read rate
+10. **Write/s** - Disk write rate
 
 ## Project Structure
 
 ```
 task-manager/
-├── Cargo.toml              # Project dependencies
+├── Cargo.toml              # Project configuration & dependencies
 ├── README.md               # This file
+├── LICENSE                 # MIT License
 └── src/
-    ├── main.rs             # Entry point & event loop
+    ├── main.rs             # Entry point & main event loop
+    ├── constants.rs        # Centralized configuration constants
     ├── app/
-    │   ├── mod.rs          # Application state & logic
-    │   ├── process_entry.rs # Process data structure
-    │   └── sort.rs         # Sorting options
+    │   ├── mod.rs          # Module exports
+    │   ├── state.rs        # Application state & refresh logic
+    │   ├── cli.rs          # Command-line argument parsing
+    │   ├── input.rs        # Keyboard event handling
+    │   ├── navigation.rs   # List navigation methods
+    │   ├── process_entry.rs# Process data structure
+    │   ├── process_ops.rs  # Kill, suspend, priority operations
+    │   ├── sort.rs         # Sorting options enum
+    │   ├── view_mode.rs    # View state enum
+    │   ├── tree_builder.rs # Process tree hierarchy
+    │   ├── detail_view.rs  # Detail view logic
+    │   ├── affinity.rs     # CPU affinity dialog logic
+    │   └── export.rs       # CSV export functionality
+    ├── system/
+    │   ├── mod.rs          # Module exports
+    │   ├── processes.rs    # Process enumeration (ToolHelp32)
+    │   ├── cpu.rs          # CPU usage tracking
+    │   ├── memory.rs       # Memory metrics
+    │   ├── disk.rs         # Disk I/O statistics
+    │   ├── priority.rs     # Priority get/set
+    │   ├── suspend.rs      # Suspend/resume (NtSuspendProcess)
+    │   ├── affinity.rs     # CPU affinity get/set
+    │   ├── uptime.rs       # Process uptime calculation
+    │   ├── path.rs         # Process path & handle count
+    │   ├── details.rs      # Modules, TCP/UDP connections
+    │   ├── admin.rs        # Elevation status detection
+    │   └── error.rs        # Custom error types
     ├── ui/
-    │   ├── mod.rs          # UI module exports
-    │   └── render.rs       # Terminal rendering
-    ├── ffi/
-    │   ├── mod.rs          # FFI module exports
-    │   └── handles.rs      # RAII handle wrappers
-    └── system/
-        ├── mod.rs          # System module exports
-        ├── processes.rs    # Process enumeration
-        ├── memory.rs       # Memory metrics
-        ├── cpu.rs          # CPU tracking
-        ├── disk.rs         # Disk I/O stats
-        └── priority.rs     # Priority management
+    │   ├── mod.rs          # Module exports
+    │   ├── render.rs       # Main render coordinator
+    │   ├── components.rs   # Header, footer, stats bar
+    │   ├── process_list.rs # Process list rendering
+    │   ├── detail_view.rs  # Detail view rendering
+    │   ├── affinity.rs     # Affinity dialog rendering
+    │   ├── help.rs         # Help overlay rendering
+    │   └── utils.rs        # Color helpers, formatting
+    └── ffi/
+        ├── mod.rs          # Module exports
+        └── handles.rs      # RAII wrappers for Win32 handles
 ```
 
 ## Technical Details
 
 ### Win32 APIs Used
 
-| Module | API | Purpose |
-|--------|-----|---------|
-| **Process Enumeration** | `CreateToolhelp32Snapshot` | Create snapshot of processes |
-| | `Process32FirstW` / `Process32NextW` | Iterate through processes |
+| Category | API | Purpose |
+|----------|-----|---------|
+| **Process Enumeration** | `CreateToolhelp32Snapshot` | Snapshot of all processes |
+| | `Process32FirstW` / `Process32NextW` | Iterate processes |
 | **CPU Metrics** | `GetSystemTimes` | System-wide CPU times |
 | | `GetProcessTimes` | Per-process CPU times |
-| **Memory Metrics** | `GlobalMemoryStatusEx` | System memory info |
+| **Memory** | `GlobalMemoryStatusEx` | System memory info |
 | | `GetProcessMemoryInfo` | Per-process memory |
 | **Disk I/O** | `GetProcessIoCounters` | Read/write byte counts |
-| **Priority** | `GetPriorityClass` | Get process priority |
-| | `SetPriorityClass` | Modify process priority |
-| **Process Control** | `OpenProcess` | Get process handle |
-| | `TerminateProcess` | Kill a process |
-| | `CloseHandle` | Release handles |
+| **Priority** | `GetPriorityClass` / `SetPriorityClass` | Priority management |
+| **Suspend/Resume** | `NtSuspendProcess` / `NtResumeProcess` | Undocumented ntdll APIs |
+| **Affinity** | `GetProcessAffinityMask` / `SetProcessAffinityMask` | CPU core assignment |
+| **Modules** | `EnumProcessModules` / `GetModuleFileNameExW` | Loaded DLLs |
+| **Network** | `GetExtendedTcpTable` / `GetExtendedUdpTable` | TCP/UDP connections |
+| **Admin** | `OpenProcessToken` / `GetTokenInformation` | Elevation detection |
+| **Handles** | `OpenProcess` / `CloseHandle` | Handle management |
 
-### CPU Calculation Method
+### CPU Calculation
 
-CPU percentage is calculated using **time deltas** between refresh intervals:
+CPU percentage uses time deltas between refresh intervals:
 
 ```
                     Process Time Delta
@@ -157,117 +248,67 @@ CPU % = ────────────────────────
                     System Time Delta
 ```
 
-Where:
-- **Process Time Delta** = (Kernel + User time) change for the process
-- **System Time Delta** = (Kernel + User time) change for the system
-
-This matches Windows Task Manager's calculation method, showing 0-100% regardless of core count.
-
-### Memory Metrics
-
-| Metric | Description |
-|--------|-------------|
-| **Working Set** | Physical memory currently in use by the process |
-| **System Memory** | Total and available physical RAM |
-| **Memory Load %** | Percentage of physical memory in use |
+This matches Windows Task Manager's behavior, showing 0-100% regardless of core count.
 
 ### Priority Levels
 
-| Priority | Value | Description |
+| Priority | Class | Description |
 |----------|-------|-------------|
-| Idle | 4 | Runs only when CPU is idle |
-| Below Normal | 6 | Lower than normal priority |
+| Idle | 4 | Runs only when system is idle |
+| Below Normal | 6 | Lower than normal |
 | Normal | 8 | Default priority |
-| Above Normal | 10 | Higher than normal priority |
-| High | 13 | Significantly elevated priority |
-| Realtime | 24 | Highest priority (dangerous!) |
+| Above Normal | 10 | Higher than normal |
+| High | 13 | Significantly elevated |
+| Realtime | 24 | Maximum priority (⚠️ dangerous!) |
 
-⚠️ **Warning**: Setting Realtime priority can freeze the system by starving critical OS processes.
-
-### Disk I/O
-
-- **Disk Read**: Cumulative bytes read since process start
-- **Disk Write**: Cumulative bytes written since process start
-
-These are total values, not rates. Long-running processes will show higher values.
-
-### Thread Count
-
-Shows the number of execution threads in each process. Limits depend on:
-- Stack size (default 1 MB per thread)
-- Available memory
-- 32-bit processes: ~2000 threads max
-- 64-bit processes: ~100,000+ threads max
-
-## Display
-
-### Column Layout
-
-```
-PID      Priority  Threads     Memory   CPU%   Disk Read  Disk Write  Name
-```
-
-### Color Coding (CPU)
+### Color Coding
 
 | Color | CPU Usage |
 |-------|-----------|
-| 🟢 Green | < 20% |
+| 🟢 Green | &lt; 20% |
 | 🔵 Cyan | 20-50% |
 | 🟡 Yellow | 50-80% |
 | 🔴 Red | ≥ 80% |
 
-### Status Bar
-
-- Shows error messages and status updates
-- Kill confirmation dialog appears here
-- Help text with available commands
-
-## Safe Rust Wrappers
+## Safe Rust Patterns
 
 All Win32 API calls use `unsafe` blocks wrapped in safe Rust abstractions:
 
 ```rust
-// RAII handle wrapper - automatically calls CloseHandle on drop
-pub struct SnapshotHandle(HANDLE);
+// RAII handle wrapper - CloseHandle called automatically on drop
+pub struct ProcessHandle(HANDLE);
 
-impl Drop for SnapshotHandle {
+impl Drop for ProcessHandle {
     fn drop(&mut self) {
-        unsafe { CloseHandle(self.0); }
+        unsafe { let _ = CloseHandle(self.0); }
     }
+}
+
+// Custom error types for type-safe error handling
+pub enum ProcessError {
+    AccessDenied,
+    SystemProcess,
+    InvalidHandle,
+    // ...
 }
 ```
 
-This ensures:
-- Handles are always properly closed
-- Memory safety is maintained
-- No resource leaks
-
-## Error Handling
-
-- Failed API calls display error messages in the status bar
-- Inaccessible processes (system processes) show 0% CPU and 0 bytes
-- The application continues running even if individual process queries fail
-
-## Refresh Rate
-
-- Default: 5 seconds
-- Configurable via `REFRESH_INTERVAL_MS` constant in `main.rs`
-
-## Bookmarks
-- Win32 API Index: https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list
-- Process & Thread Reference: https://learn.microsoft.com/en-us/windows/win32/procthread/process-and-thread-reference
-- windows-rs Docs: https://microsoft.github.io/windows-docs-rs/
-- windows-rs GitHub: https://github.com/microsoft/windows-rs
-
 ## Limitations
 
-1. **Elevated Processes**: Cannot query CPU/memory for some system processes without admin rights
-2. **Disk I/O**: Shows cumulative totals, not real-time rates
-3. **32-bit Processes**: Cannot query 64-bit process details from 32-bit build
+1. **System Processes** - Cannot query some protected processes without admin rights
+2. **32-bit Builds** - Cannot access 64-bit process details
+3. **Realtime Priority** - Setting this can freeze the system
+
+## Resources
+
+- [Win32 API Index](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list)
+- [Process & Thread Reference](https://learn.microsoft.com/en-us/windows/win32/procthread/process-and-thread-reference)
+- [windows-rs Documentation](https://microsoft.github.io/windows-docs-rs/)
+- [windows-rs GitHub](https://github.com/microsoft/windows-rs)
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ## Author
 
@@ -275,4 +316,4 @@ Created for OS Lab Project - Operating Systems Course
 
 ---
 
-*Built with ❤️ using Rust and raw Win32 APIs*
+*Built with Rust and raw Win32 APIs*
