@@ -14,6 +14,7 @@ fn filetime_to_u64(ft: &FILETIME) -> u64 {
 }
 
 /// Gets the current system time as FILETIME (100-nanosecond intervals since 1601)
+#[must_use]
 pub fn get_current_filetime() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     
@@ -83,6 +84,7 @@ pub fn get_process_start_time(pid: u32) -> Option<u64> {
 ///
 /// # Returns
 /// * `u64` - Uptime in seconds
+#[must_use]
 pub fn calculate_uptime_seconds(start_time: u64) -> u64 {
     let now = get_current_filetime();
     if now > start_time {
@@ -100,6 +102,7 @@ pub fn calculate_uptime_seconds(start_time: u64) -> u64 {
 ///
 /// # Returns
 /// * `String` - Formatted string like "5s", "2m", "1h 30m", "2d 5h"
+#[must_use]
 pub fn format_uptime(seconds: u64) -> String {
     if seconds < 60 {
         format!("{}s", seconds)

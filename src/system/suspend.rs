@@ -11,10 +11,11 @@ use windows::Win32::System::Threading::{
     OpenProcess, PROCESS_SUSPEND_RESUME,
 };
 
-// We need to dynamically load NtSuspendProcess and NtResumeProcess from ntdll
 use windows::core::PCSTR;
 use windows::Win32::System::LibraryLoader::{GetProcAddress, GetModuleHandleA};
 use windows::Win32::Foundation::HANDLE;
+
+use super::error::{ProcessError, ProcessResult};
 
 /// Type alias for NtSuspendProcess/NtResumeProcess function signature
 type NtSuspendResumeProcess = unsafe extern "system" fn(HANDLE) -> NTSTATUS;
@@ -30,7 +31,14 @@ fn init_suspended_pids() {
     }
 }
 
-/// Check if a process is suspended (by our tracking)
+/// Check if a process is suspended (by our tracking).
+///
+/// # Arguments
+/// * `pid` - The process ID to check
+///
+/// # Returns
+/// `true` if the process was suspended by this application, `false` otherwise.
+#[must_use]
 pub fn is_process_suspended(pid: u32) -> bool {
     init_suspended_pids();
     let guard = SUSPENDED_PIDS.lock().unwrap();
@@ -55,7 +63,10 @@ fn mark_resumed(pid: u32) {
     }
 }
 
-/// Remove a PID from tracking (e.g., when process terminates)
+/// Remove a PID from tracking (e.g., when process terminates).
+///
+/// # Arguments
+/// * `pid` - The process ID to stop tracking
 #[allow(dead_code)]
 pub fn untrack_process(pid: u32) {
     init_suspended_pids();
@@ -85,27 +96,27 @@ fn get_nt_resume_process() -> Option<NtSuspendResumeProcess> {
 
 /// Suspend a process by PID
 /// 
-/// Returns Ok(()) on success, Err with message on failure
-pub fn suspend_process(pid: u32) -> Result<(), String> {
+/// Returns Ok(()) on success, Err with ProcessError on failure
+pub fn suspend_process(pid: u32) -> ProcessResult<()> {
     // Don't suspend system processes
     if pid == 0 || pid == 4 {
-        return Err("Cannot suspend system processes".to_string());
+        return Err(ProcessError::SystemProcess);
     }
 
     // Check if already suspended
     if is_process_suspended(pid) {
-        return Err("Process is already suspended".to_string());
+        return Err(ProcessError::AlreadyInState { state: "suspended" });
     }
 
     let nt_suspend = get_nt_suspend_process()
-        .ok_or_else(|| "Failed to load NtSuspendProcess".to_string())?;
+        .ok_or(ProcessError::NtdllLoadFailed { function: "NtSuspendProcess" })?;
 
     unsafe {
         let handle = OpenProcess(PROCESS_SUSPEND_RESUME, false, pid)
-            .map_err(|e| format!("Failed to open process: {}", e))?;
+            .map_err(|_| ProcessError::AccessDenied)?;
 
         if handle.is_invalid() {
-            return Err("Failed to open process: invalid handle".to_string());
+            return Err(ProcessError::InvalidHandle);
         }
 
         let status = nt_suspend(handle);
@@ -115,29 +126,29 @@ pub fn suspend_process(pid: u32) -> Result<(), String> {
             mark_suspended(pid);
             Ok(())
         } else {
-            Err(format!("NtSuspendProcess failed with status: 0x{:08X}", status.0))
+            Err(ProcessError::WinApiError { api: "NtSuspendProcess", code: status.0 })
         }
     }
 }
 
 /// Resume a suspended process by PID
 /// 
-/// Returns Ok(()) on success, Err with message on failure
-pub fn resume_process(pid: u32) -> Result<(), String> {
+/// Returns Ok(()) on success, Err with ProcessError on failure
+pub fn resume_process(pid: u32) -> ProcessResult<()> {
     // Check if we think it's suspended
     if !is_process_suspended(pid) {
-        return Err("Process is not suspended".to_string());
+        return Err(ProcessError::AlreadyInState { state: "running" });
     }
 
     let nt_resume = get_nt_resume_process()
-        .ok_or_else(|| "Failed to load NtResumeProcess".to_string())?;
+        .ok_or(ProcessError::NtdllLoadFailed { function: "NtResumeProcess" })?;
 
     unsafe {
         let handle = OpenProcess(PROCESS_SUSPEND_RESUME, false, pid)
-            .map_err(|e| format!("Failed to open process: {}", e))?;
+            .map_err(|_| ProcessError::AccessDenied)?;
 
         if handle.is_invalid() {
-            return Err("Failed to open process: invalid handle".to_string());
+            return Err(ProcessError::InvalidHandle);
         }
 
         let status = nt_resume(handle);
@@ -147,13 +158,21 @@ pub fn resume_process(pid: u32) -> Result<(), String> {
             mark_resumed(pid);
             Ok(())
         } else {
-            Err(format!("NtResumeProcess failed with status: 0x{:08X}", status.0))
+            Err(ProcessError::WinApiError { api: "NtResumeProcess", code: status.0 })
         }
     }
 }
 
-/// Toggle suspend/resume state for a process
-pub fn toggle_suspend(pid: u32) -> Result<bool, String> {
+/// Toggle suspend/resume state for a process.
+///
+/// # Arguments
+/// * `pid` - The process ID to toggle
+///
+/// # Returns
+/// * `Ok(true)` - Process is now suspended
+/// * `Ok(false)` - Process is now running
+/// * `Err(ProcessError)` - If the operation failed
+pub fn toggle_suspend(pid: u32) -> ProcessResult<bool> {
     if is_process_suspended(pid) {
         resume_process(pid)?;
         Ok(false) // Now running

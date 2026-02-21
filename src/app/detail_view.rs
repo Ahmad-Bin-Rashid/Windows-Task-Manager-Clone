@@ -1,8 +1,12 @@
 //! Detail view management
 
+use crate::system::{
+    get_process_affinity, get_process_command_line, get_process_modules,
+    get_process_tcp_connections, get_process_udp_endpoints, ProcessDetails,
+};
+
 use super::state::App;
-use crate::system::affinity::get_process_affinity;
-use crate::system::details::ProcessDetails;
+use super::ViewMode;
 
 impl App {
     /// Opens detail view for the currently selected process
@@ -14,8 +18,6 @@ impl App {
         let process = &self.filtered_processes[self.selected_index];
         let pid = process.info.pid;
         let name = process.info.name.clone();
-
-        use crate::system::details::*;
 
         let modules = get_process_modules(pid);
         let tcp_connections = get_process_tcp_connections(pid);
@@ -42,7 +44,7 @@ impl App {
             cpu_affinity,
         };
 
-        self.detail_view_mode = true;
+        self.view_mode = ViewMode::DetailView;
         self.detail_view_pid = Some(pid);
         self.detail_view_name = Some(name);
         self.detail_view_data = Some(details);
@@ -51,7 +53,7 @@ impl App {
 
     /// Closes the detail view and returns to process list
     pub fn close_detail_view(&mut self) {
-        self.detail_view_mode = false;
+        self.view_mode = ViewMode::ProcessList;
         self.detail_view_pid = None;
         self.detail_view_name = None;
         self.detail_view_data = None;
@@ -69,8 +71,6 @@ impl App {
         let process = self.processes.iter().find(|p| p.info.pid == pid);
         
         if let Some(process) = process {
-            use crate::system::details::*;
-
             let modules = get_process_modules(pid);
             let tcp_connections = get_process_tcp_connections(pid);
             let udp_endpoints = get_process_udp_endpoints(pid);

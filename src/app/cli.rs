@@ -3,10 +3,9 @@
 use std::env;
 use std::process;
 
-use super::SortColumn;
+use crate::constants::{APP_NAME, APP_VERSION, DEFAULT_REFRESH_MS, MAX_REFRESH_MS, MIN_REFRESH_MS};
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-const NAME: &str = env!("CARGO_PKG_NAME");
+use super::SortColumn;
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -28,7 +27,7 @@ pub struct Args {
 impl Default for Args {
     fn default() -> Self {
         Self {
-            refresh: 2000,
+            refresh: DEFAULT_REFRESH_MS,
             filter: None,
             sort: SortColumn::Cpu,
             ascending: false,
@@ -80,14 +79,14 @@ CONTROLS:
     /         Filter by name
     [/]       Slow down/speed up refresh
     ?         Show help overlay",
-        NAME, VERSION, NAME, NAME, NAME, NAME, NAME, NAME, NAME
+        APP_NAME, APP_VERSION, APP_NAME, APP_NAME, APP_NAME, APP_NAME, APP_NAME, APP_NAME, APP_NAME
     );
     process::exit(0);
 }
 
 /// Print version and exit
 fn print_version() {
-    println!("{} {}", NAME, VERSION);
+    println!("{} {}", APP_NAME, APP_VERSION);
     process::exit(0);
 }
 
@@ -121,10 +120,10 @@ fn parse_sort(s: &str) -> SortColumn {
 /// Parse refresh interval from string
 fn parse_refresh(s: &str) -> u64 {
     match s.parse::<u64>() {
-        Ok(ms) if ms >= 250 && ms <= 10000 => ms,
+        Ok(ms) if ms >= MIN_REFRESH_MS && ms <= MAX_REFRESH_MS => ms,
         Ok(ms) => print_error(&format!(
-            "refresh interval {} is out of range. Must be between 250 and 10000 ms",
-            ms
+            "refresh interval {} is out of range. Must be between {} and {} ms",
+            ms, MIN_REFRESH_MS, MAX_REFRESH_MS
         )),
         Err(_) => print_error(&format!("invalid refresh interval '{}'. Must be a number", s)),
     }

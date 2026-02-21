@@ -3,16 +3,15 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
+use crate::constants::DEFAULT_REFRESH_MS;
 use crate::system::cpu::CpuTracker;
-use crate::system::details::ProcessDetails;
-use crate::system::disk::get_process_disk_info;
-use crate::system::memory::get_process_memory_info;
-use crate::system::path::{get_process_handle_count, get_process_path};
-use crate::system::priority::get_process_priority;
-use crate::system::processes::enumerate_processes;
-use crate::system::uptime::{calculate_uptime_seconds, get_process_start_time};
+use crate::system::{
+    calculate_uptime_seconds, enumerate_processes, get_process_disk_info,
+    get_process_handle_count, get_process_memory_info, get_process_path,
+    get_process_priority, get_process_start_time, ProcessDetails,
+};
 
-use super::{ProcessEntry, SortColumn};
+use super::{ProcessEntry, SortColumn, ViewMode};
 
 /// Previous disk I/O snapshot for rate calculation
 #[derive(Debug, Clone, Default)]
@@ -43,10 +42,8 @@ pub struct App {
     pub sort_ascending: bool,
     /// Search filter string
     pub filter: String,
-    /// Whether we're in filter input mode
-    pub filter_mode: bool,
-    /// Whether we're waiting for kill confirmation
-    pub confirm_kill_mode: bool,
+    /// Current view/input mode (replaces multiple boolean flags)
+    pub view_mode: ViewMode,
     /// PID of process pending kill confirmation
     pub pending_kill_pid: Option<u32>,
     /// Name of process pending kill confirmation
@@ -57,8 +54,6 @@ pub struct App {
     last_refresh_time: Instant,
     /// Refresh interval in milliseconds
     pub refresh_interval_ms: u64,
-    /// Whether we're viewing process details
-    pub detail_view_mode: bool,
     /// PID of process in detail view
     pub detail_view_pid: Option<u32>,
     /// Name of process in detail view
@@ -69,10 +64,6 @@ pub struct App {
     pub detail_scroll_offset: usize,
     /// Whether we're in tree view mode
     pub tree_view_mode: bool,
-    /// Whether to show the help overlay
-    pub show_help: bool,
-    /// Whether we're in affinity edit mode
-    pub affinity_mode: bool,
     /// PID of process being edited for affinity
     pub affinity_pid: Option<u32>,
     /// Name of process being edited for affinity
@@ -88,7 +79,10 @@ pub struct App {
 }
 
 impl App {
-    /// Creates a new App instance
+    /// Creates a new App instance with default settings.
+    ///
+    /// # Returns
+    /// A new `App` ready for use with default configuration.
     pub fn new() -> Self {
         Self {
             processes: Vec::new(),
@@ -101,21 +95,17 @@ impl App {
             sort_column: SortColumn::Cpu,
             sort_ascending: false,
             filter: String::new(),
-            filter_mode: false,
-            confirm_kill_mode: false,
+            view_mode: ViewMode::default(),
             pending_kill_pid: None,
             pending_kill_name: None,
             prev_disk_io: HashMap::new(),
             last_refresh_time: Instant::now(),
-            refresh_interval_ms: 2000,
-            detail_view_mode: false,
+            refresh_interval_ms: DEFAULT_REFRESH_MS,
             detail_view_pid: None,
             detail_view_name: None,
             detail_view_data: None,
             detail_scroll_offset: 0,
             tree_view_mode: false,
-            show_help: false,
-            affinity_mode: false,
             affinity_pid: None,
             affinity_name: None,
             affinity_mask: 0,
@@ -125,7 +115,13 @@ impl App {
         }
     }
 
-    /// Creates a new App instance configured with command-line arguments
+    /// Creates a new App instance configured with command-line arguments.
+    ///
+    /// # Arguments
+    /// * `args` - Parsed command-line arguments
+    ///
+    /// # Returns
+    /// A new `App` configured according to the provided arguments.
     pub fn with_args(args: &super::cli::Args) -> Self {
         let mut app = Self::new();
         
@@ -142,7 +138,9 @@ impl App {
         app
     }
 
-    /// Increase refresh interval (slower refresh)
+    /// Increases refresh interval (slower refresh).
+    ///
+    /// Steps: 250ms → 500ms → 1s → 2s → 5s → 10s
     pub fn increase_refresh_interval(&mut self) {
         self.refresh_interval_ms = match self.refresh_interval_ms {
             x if x >= 10000 => 10000,
@@ -154,7 +152,9 @@ impl App {
         };
     }
 
-    /// Decrease refresh interval (faster refresh)
+    /// Decreases refresh interval (faster refresh).
+    ///
+    /// Steps: 10s → 5s → 2s → 1s → 500ms → 250ms
     pub fn decrease_refresh_interval(&mut self) {
         self.refresh_interval_ms = match self.refresh_interval_ms {
             x if x <= 500 => 250,
@@ -166,7 +166,10 @@ impl App {
         };
     }
 
-    /// Format refresh interval for display
+    /// Formats refresh interval for display.
+    ///
+    /// # Returns
+    /// A string like "2.0s" or "500ms" depending on interval.
     pub fn format_refresh_interval(&self) -> String {
         if self.refresh_interval_ms >= 1000 {
             format!("{:.1}s", self.refresh_interval_ms as f64 / 1000.0)
@@ -175,7 +178,10 @@ impl App {
         }
     }
 
-    /// Refreshes the process list and metrics
+    /// Refreshes the process list and updates all metrics.
+    ///
+    /// Enumerates processes, calculates CPU/memory usage, disk I/O rates,
+    /// and updates the filtered/sorted process list.
     pub fn refresh(&mut self) {
         let now = Instant::now();
         let time_delta = now.duration_since(self.last_refresh_time).as_secs_f64();
@@ -307,7 +313,10 @@ impl App {
         });
     }
 
-    /// Apply the current filter to the process list
+    /// Apply the current filter to the process list.
+    ///
+    /// Filters processes by name (case-insensitive) and updates
+    /// the `filtered_processes` vector. Adjusts selection if needed.
     pub fn apply_filter(&mut self) {
         self.filtered_processes = if self.filter.is_empty() {
             self.processes.clone()
@@ -325,14 +334,16 @@ impl App {
         }
     }
 
-    /// Toggle to next sort column
+    /// Cycles to the next sort column.
+    ///
+    /// Order: CPU → Memory → Name → PID → Priority → Threads → Handles → Uptime → Read/s → Write/s
     pub fn cycle_sort(&mut self) {
         self.sort_column = self.sort_column.next();
         self.sort_processes();
         self.apply_filter();
     }
 
-    /// Toggle sort order between ascending and descending
+    /// Toggles sort order between ascending and descending.
     pub fn toggle_sort_order(&mut self) {
         self.sort_ascending = !self.sort_ascending;
         self.sort_processes();

@@ -1,7 +1,6 @@
 //! Process entry data structure
 
-use crate::system::priority::Priority;
-use crate::system::processes::ProcessInfo;
+use crate::system::{Priority, ProcessInfo};
 
 /// Process entry with calculated metrics
 #[derive(Debug, Clone)]

@@ -6,7 +6,11 @@ use super::state::App;
 use super::ProcessEntry;
 
 impl App {
-    /// Builds a hierarchical process tree from flat list
+    /// Builds a hierarchical process tree from the flat process list.
+    ///
+    /// Organizes processes by parent-child relationships, with root
+    /// processes at the top and children indented below their parents.
+    /// Only active when `tree_view_mode` is enabled.
     pub fn build_process_tree(&mut self) {
         // If not in tree mode, just apply filter normally
         if !self.tree_view_mode {
@@ -76,7 +80,10 @@ impl App {
         }
     }
 
-    /// Toggles tree view mode on/off
+    /// Toggles tree view mode on/off.
+    ///
+    /// When enabled, processes are displayed hierarchically by parent-child
+    /// relationships. When disabled, processes are shown in a flat list.
     pub fn toggle_tree_view(&mut self) {
         self.tree_view_mode = !self.tree_view_mode;
         self.selected_index = 0;

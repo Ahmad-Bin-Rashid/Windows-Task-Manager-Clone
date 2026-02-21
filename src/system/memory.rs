@@ -36,12 +36,17 @@ pub struct SystemMemoryInfo {
 }
 
 impl SystemMemoryInfo {
-    /// Returns the used physical memory in bytes
+    /// Returns the used physical memory in bytes.
+    ///
+    /// Calculated as `total_physical - available_physical`.
     pub fn used_physical(&self) -> u64 {
         self.total_physical - self.available_physical
     }
 
-    /// Returns used memory as a formatted string (e.g., "8.5 GB / 16.0 GB")
+    /// Returns used memory as a formatted string.
+    ///
+    /// # Returns
+    /// A string like "8.5 GB / 16.0 GB (53%)"
     #[allow(dead_code)]
     pub fn format_usage(&self) -> String {
         format!(
@@ -66,7 +71,10 @@ pub struct ProcessMemoryInfo {
 }
 
 impl ProcessMemoryInfo {
-    /// Returns working set as a formatted string (e.g., "125.4 MB")
+    /// Returns working set as a formatted string.
+    ///
+    /// # Returns
+    /// A string like "125.4 MB"
     #[allow(dead_code)]
     pub fn format_working_set(&self) -> String {
         format_bytes(self.working_set)
@@ -80,6 +88,7 @@ fn bytes_to_gb(bytes: u64) -> f64 {
 }
 
 /// Formats bytes into a human-readable string
+#[must_use]
 pub fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
@@ -103,6 +112,7 @@ pub fn format_bytes(bytes: u64) -> String {
 /// # Returns
 /// * `Ok(SystemMemoryInfo)` - Memory statistics for the entire system
 /// * `Err` - If the API call fails
+#[must_use]
 pub fn get_system_memory_info() -> windows::core::Result<SystemMemoryInfo> {
     // Initialize the struct - dwLength must be set!
     let mut mem_status = MEMORYSTATUSEX {

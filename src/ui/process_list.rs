@@ -8,12 +8,17 @@ use crossterm::{
 };
 
 use crate::app::App;
-use crate::system::memory::format_bytes;
-use crate::system::uptime::format_uptime;
+use crate::constants::MAX_TREE_INDENT_DEPTH;
+use crate::system::{format_bytes, format_uptime};
 
 use super::utils::{cpu_color, format_rate, truncate_string};
 
-/// Renders the process list
+/// Renders the scrollable process list.
+///
+/// Displays process information including PID, priority, threads, handles,
+/// uptime, memory, CPU usage, disk I/O rates, and process name.
+/// Highlights the currently selected process and shows tree indentation
+/// when tree view mode is enabled.
 pub fn render_process_list(
     stdout: &mut io::Stdout,
     app: &mut App,
@@ -43,7 +48,7 @@ pub fn render_process_list(
 
         // Add tree indentation if in tree view mode
         let tree_prefix = if app.tree_view_mode && entry.tree_depth > 0 {
-            let indent = "  ".repeat(entry.tree_depth.min(5));
+            let indent = "  ".repeat(entry.tree_depth.min(MAX_TREE_INDENT_DEPTH));
             format!("{}└─", indent)
         } else {
             String::new()

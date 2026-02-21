@@ -9,8 +9,13 @@ use crossterm::{
 };
 
 use crate::app::App;
+use crate::constants::{AFFINITY_DIALOG_WIDTH, DIALOG_MARGIN};
 
-/// Renders the CPU affinity dialog overlay
+/// Renders the CPU affinity dialog overlay.
+///
+/// Displays a centered dialog allowing users to select which CPU cores
+/// a process can run on. Shows checkboxes for each core, with the current
+/// affinity highlighted. Supports keyboard navigation and toggle.
 pub fn render_affinity_dialog(
     stdout: &mut io::Stdout,
     app: &App,
@@ -27,8 +32,8 @@ pub fn render_affinity_dialog(
     let cores_per_row = 4.min(total_cores);
     let num_rows = (total_cores + cores_per_row - 1) / cores_per_row;
     
-    let box_width = 60.min(width.saturating_sub(4));
-    let box_height = (num_rows + 8).min(height.saturating_sub(4)); // +8 for header, footer, padding
+    let box_width = AFFINITY_DIALOG_WIDTH.min(width.saturating_sub(DIALOG_MARGIN));
+    let box_height = (num_rows + 8).min(height.saturating_sub(DIALOG_MARGIN)); // +8 for header, footer, padding
     let start_x = (width.saturating_sub(box_width)) / 2;
     let start_y = (height.saturating_sub(box_height)) / 2;
 

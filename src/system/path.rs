@@ -16,6 +16,7 @@ use windows::Win32::System::Threading::{
 ///
 /// # Returns
 /// * `Option<String>` - Full path or None if inaccessible
+#[must_use]
 pub fn get_process_path(pid: u32) -> Option<String> {
     // SAFETY: OpenProcess is safe with valid parameters
     let handle = unsafe {
@@ -59,6 +60,7 @@ pub fn get_process_path(pid: u32) -> Option<String> {
 ///
 /// # Returns
 /// * `u32` - Number of handles, or 0 if inaccessible
+#[must_use]
 pub fn get_process_handle_count(pid: u32) -> u32 {
     // SAFETY: OpenProcess is safe with valid parameters
     let handle = unsafe {
@@ -88,6 +90,7 @@ pub fn get_process_handle_count(pid: u32) -> u32 {
 }
 
 /// Extracts just the filename from a full path
+#[must_use]
 #[allow(dead_code)]
 pub fn path_to_filename(path: &str) -> &str {
     path.rsplit('\\').next().unwrap_or(path)

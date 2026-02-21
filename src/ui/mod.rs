@@ -17,4 +17,10 @@ mod process_list;
 mod render;
 mod utils;
 
+// ============================================================================
+// Re-exports for clean imports
+// ============================================================================
+
+// Main rendering entry point
 pub use render::render;
+

@@ -1,8 +1,9 @@
 //! CPU affinity dialog management
 
-use crate::system::affinity::{get_process_affinity, get_system_core_count, set_process_affinity};
+use crate::system::{get_process_affinity, get_system_core_count, set_process_affinity};
 
 use super::state::App;
+use super::ViewMode;
 
 impl App {
     /// Opens the affinity dialog for the currently viewed process
@@ -26,7 +27,7 @@ impl App {
             }
         };
 
-        self.affinity_mode = true;
+        self.view_mode = ViewMode::Affinity;
         self.affinity_pid = Some(pid);
         self.affinity_name = Some(name);
         self.affinity_mask = current_mask;
@@ -36,7 +37,7 @@ impl App {
 
     /// Closes the affinity dialog without applying changes
     pub fn close_affinity_dialog(&mut self) {
-        self.affinity_mode = false;
+        self.view_mode = ViewMode::DetailView;
         self.affinity_pid = None;
         self.affinity_name = None;
         self.affinity_mask = 0;
@@ -108,7 +109,7 @@ impl App {
                 self.refresh_detail_view();
             }
             Err(e) => {
-                self.error_message = Some(e);
+                self.error_message = Some(e.to_string());
             }
         }
     }

@@ -15,8 +15,8 @@ use crossterm::{
     terminal::{self, Clear, ClearType},
 };
 
-use crate::app::App;
-use crate::system::memory::get_system_memory_info;
+use crate::app::{App, ViewMode};
+use crate::system::get_system_memory_info;
 
 use super::components::{
     render_column_headers, render_filter_bar, render_footer, render_header, render_system_stats,
@@ -39,20 +39,15 @@ pub fn render(stdout: &mut io::Stdout, app: &mut App) -> io::Result<()> {
     execute!(stdout, MoveTo(0, 0), Clear(ClearType::All))?;
 
     // Dispatch based on current view mode
-    if app.show_help {
-        return render_help_overlay(stdout, app, width, height);
+    match app.view_mode {
+        ViewMode::Help => render_help_overlay(stdout, app, width, height),
+        ViewMode::Affinity => render_affinity_dialog(stdout, app, width, height),
+        ViewMode::DetailView => render_detail_view(stdout, app, width, height),
+        // Process list, filter input, and confirm kill all render the main view
+        ViewMode::ProcessList | ViewMode::FilterInput | ViewMode::ConfirmKill => {
+            render_main_view(stdout, app, width, height)
+        }
     }
-
-    if app.affinity_mode {
-        return render_affinity_dialog(stdout, app, width, height);
-    }
-
-    if app.detail_view_mode {
-        return render_detail_view(stdout, app, width, height);
-    }
-
-    // Main process list view
-    render_main_view(stdout, app, width, height)
 }
 
 /// Renders the main process list view

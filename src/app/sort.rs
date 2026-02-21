@@ -16,7 +16,10 @@ pub enum SortColumn {
 }
 
 impl SortColumn {
-    /// Cycle to the next sort option
+    /// Cycles to the next sort column.
+    ///
+    /// # Returns
+    /// The next `SortColumn` in the cycle.
     pub fn next(self) -> Self {
         match self {
             SortColumn::Cpu => SortColumn::Memory,
@@ -32,7 +35,10 @@ impl SortColumn {
         }
     }
 
-    /// Get display name for the sort column
+    /// Gets the display name for this sort column.
+    ///
+    /// # Returns
+    /// A human-readable column name like "CPU%" or "Memory".
     pub fn name(&self) -> &'static str {
         match self {
             SortColumn::Cpu => "CPU%",

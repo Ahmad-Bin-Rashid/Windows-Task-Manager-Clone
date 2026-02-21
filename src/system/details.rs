@@ -95,6 +95,7 @@ pub struct ProcessDetails {
 }
 
 /// Get loaded modules for a process
+#[must_use]
 pub fn get_process_modules(pid: u32) -> Vec<ModuleInfo> {
     let mut modules = Vec::new();
     
@@ -169,6 +170,7 @@ pub fn get_process_modules(pid: u32) -> Vec<ModuleInfo> {
 }
 
 /// Get TCP connections for a specific process
+#[must_use]
 pub fn get_process_tcp_connections(pid: u32) -> Vec<TcpConnectionInfo> {
     let mut connections = Vec::new();
 
@@ -257,6 +259,7 @@ pub fn get_process_tcp_connections(pid: u32) -> Vec<TcpConnectionInfo> {
 }
 
 /// Get UDP endpoints for a specific process
+#[must_use]
 pub fn get_process_udp_endpoints(pid: u32) -> Vec<UdpEndpointInfo> {
     let mut endpoints = Vec::new();
 
@@ -326,12 +329,13 @@ fn format_ipv4(addr: u32) -> String {
 }
 
 /// Get command line for a process (simplified - returns path as fallback)
+#[must_use]
 pub fn get_process_command_line(pid: u32) -> Option<String> {
     // Getting the actual command line requires reading the PEB from the process
     // which is complex. For now, we'll use the executable path.
     // A full implementation would use NtQueryInformationProcess with ProcessBasicInformation
     // then read RTL_USER_PROCESS_PARAMETERS from the PEB.
-    crate::system::path::get_process_path(pid)
+    super::get_process_path(pid)
 }
 
 #[cfg(test)]

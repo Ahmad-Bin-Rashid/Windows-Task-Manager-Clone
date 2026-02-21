@@ -4,7 +4,8 @@ use windows::Win32::Foundation::CloseHandle;
 use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
 
 use super::state::App;
-use crate::system::priority::set_process_priority;
+use super::ViewMode;
+use crate::system::{is_process_suspended, set_process_priority, toggle_suspend};
 
 impl App {
     /// Requests to kill the currently selected process (shows confirmation)
@@ -16,7 +17,7 @@ impl App {
         let process = &self.filtered_processes[self.selected_index];
         self.pending_kill_pid = Some(process.info.pid);
         self.pending_kill_name = Some(process.info.name.clone());
-        self.confirm_kill_mode = true;
+        self.view_mode = ViewMode::ConfirmKill;
         self.error_message = Some(format!(
             "Kill {} (PID {})? Press Y to confirm, N to cancel",
             process.info.name, process.info.pid
@@ -61,7 +62,7 @@ impl App {
 
     /// Cancels the pending kill
     pub fn cancel_kill(&mut self) {
-        self.confirm_kill_mode = false;
+        self.view_mode = ViewMode::ProcessList;
         self.pending_kill_pid = None;
         self.pending_kill_name = None;
     }
@@ -136,9 +137,7 @@ impl App {
         let pid = process.info.pid;
         let name = process.info.name.clone();
 
-        use crate::system::suspend;
-
-        match suspend::toggle_suspend(pid) {
+        match toggle_suspend(pid) {
             Ok(is_suspended) => {
                 if is_suspended {
                     self.error_message = Some(format!("Suspended: {} (PID {})", name, pid));
@@ -154,6 +153,6 @@ impl App {
 
     /// Check if a process is suspended
     pub fn is_process_suspended(&self, pid: u32) -> bool {
-        crate::system::suspend::is_process_suspended(pid)
+        is_process_suspended(pid)
     }
 }

@@ -9,6 +9,7 @@ use crossterm::{
 };
 
 use crate::app::App;
+use crate::constants::{HELP_DIALOG_WIDTH, HELP_KEY_COL_WIDTH};
 
 /// Help content definition
 const HELP_LINES: &[(&str, &str)] = &[
@@ -43,7 +44,11 @@ const HELP_LINES: &[(&str, &str)] = &[
     ("  Ctrl+C", "Quit application"),
 ];
 
-/// Renders the help overlay showing all keyboard shortcuts
+/// Renders the help overlay showing all keyboard shortcuts.
+///
+/// Displays a centered dialog with available keybindings organized
+/// by category: Navigation, Process Actions, View Options, Settings,
+/// and Other. Supports scrolling when content exceeds window height.
 pub fn render_help_overlay(
     stdout: &mut io::Stdout,
     app: &App,
@@ -51,7 +56,7 @@ pub fn render_help_overlay(
     height: usize,
 ) -> io::Result<()> {
     // Calculate box dimensions - use fixed width for consistent borders
-    let box_width = 52;
+    let box_width = HELP_DIALOG_WIDTH;
     let inner_width = box_width - 2; // Width between left and right borders
     
     // Calculate available content height (minus borders, title, separator, footer hint)
@@ -149,7 +154,7 @@ pub fn render_help_overlay(
             draw_bordered_line(stdout, y, &format!(" {}", key), Color::Cyan)?;
         } else {
             // Key + description: format with fixed columns
-            let key_col = 14;
+            let key_col = HELP_KEY_COL_WIDTH;
             
             execute!(stdout, MoveTo(start_x as u16, y as u16))?;
             execute!(

@@ -8,12 +8,15 @@ use crossterm::{
 };
 
 use crate::app::App;
-use crate::system::admin::is_elevated;
-use crate::system::memory::{format_bytes, SystemMemoryInfo};
+use crate::constants::DISPLAY_NAME;
+use crate::system::{format_bytes, is_elevated, SystemMemoryInfo};
 
 use super::utils::truncate_string;
 
-/// Renders the application header with admin status indicator
+/// Renders the application header with admin status indicator.
+///
+/// Displays the application title and whether it's running with
+/// elevated (Administrator) privileges.
 pub fn render_header(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
     let admin_indicator = if is_elevated() {
         ("[Administrator]", Color::Green)
@@ -21,7 +24,7 @@ pub fn render_header(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
         ("[User]", Color::Yellow)
     };
 
-    let title = " Windows Task Manager Clone";
+    let title = format!(" {}", DISPLAY_NAME);
     let spacing = width.saturating_sub(title.len() + admin_indicator.0.len() + 2);
 
     execute!(
@@ -38,7 +41,10 @@ pub fn render_header(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
     )
 }
 
-/// Renders system statistics line
+/// Renders the system statistics line.
+///
+/// Shows CPU usage, memory usage, process count, current sort column,
+/// and refresh interval.
 pub fn render_system_stats(
     stdout: &mut io::Stdout,
     app: &App,
@@ -81,9 +87,12 @@ pub fn render_system_stats(
     )
 }
 
-/// Renders the filter bar
+/// Renders the filter bar when active or showing current filter.
+///
+/// In filter mode, displays an input field with cursor.
+/// Otherwise, shows the current filter value if set.
 pub fn render_filter_bar(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result<()> {
-    if app.filter_mode {
+    if app.view_mode.is_filter_input() {
         execute!(
             stdout,
             SetBackgroundColor(Color::DarkYellow),
@@ -113,7 +122,10 @@ pub fn render_filter_bar(stdout: &mut io::Stdout, app: &App, width: usize) -> io
     }
 }
 
-/// Renders column headers
+/// Renders the column headers for the process list.
+///
+/// Displays headers for: PID, Priority, Threads, Handles, Uptime,
+/// Memory, CPU%, Read/s, Write/s, and Name.
 pub fn render_column_headers(stdout: &mut io::Stdout, width: usize) -> io::Result<()> {
     let header = format!(
         " {:>7}  {:>8}  {:>5}  {:>6}  {:>9}  {:>10}  {:>6}  {:>9}  {:>9}  {}",
@@ -129,10 +141,13 @@ pub fn render_column_headers(stdout: &mut io::Stdout, width: usize) -> io::Resul
     )
 }
 
-/// Renders the footer (status/error message and help line)
+/// Renders the footer with status/error messages and help hints.
+///
+/// Shows kill confirmation dialog when in confirm mode,
+/// error messages when present, or keyboard shortcuts otherwise.
 pub fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Result<()> {
     // Error/status message or confirmation dialog
-    if app.confirm_kill_mode {
+    if app.view_mode.is_confirm_kill() {
         if let (Some(pid), Some(ref name)) = (app.pending_kill_pid, &app.pending_kill_name) {
             execute!(
                 stdout,
@@ -177,7 +192,7 @@ pub fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Re
     }
 
     // Help line
-    if app.confirm_kill_mode {
+    if app.view_mode.is_confirm_kill() {
         execute!(
             stdout,
             SetBackgroundColor(Color::DarkRed),
@@ -185,7 +200,7 @@ pub fn render_footer(stdout: &mut io::Stdout, app: &App, width: usize) -> io::Re
             Print(format!("{:width$}", " Kill process? Y:Confirm | N/Esc:Cancel", width = width)),
             ResetColor,
         )?;
-    } else if app.filter_mode {
+    } else if app.view_mode.is_filter_input() {
         execute!(
             stdout,
             SetBackgroundColor(Color::DarkYellow),

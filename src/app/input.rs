@@ -8,11 +8,12 @@
 
 use std::io;
 
-use crossterm::event::KeyCode;
-use crossterm::event::KeyModifiers;
+use crossterm::event::{KeyCode, KeyModifiers};
 use crossterm::terminal;
 
-use super::App;
+use crate::constants::{HELP_PAGE_SCROLL_LINES, VISIBLE_ROWS_OVERHEAD};
+
+use super::{App, ViewMode};
 
 /// Result of handling a key event
 pub enum KeyAction {
@@ -28,7 +29,7 @@ impl App {
         match code {
             // Close help
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char('?') | KeyCode::Char('q') => {
-                self.show_help = false;
+                self.view_mode = ViewMode::ProcessList;
                 self.help_scroll_offset = 0;
             }
             // Scroll up
@@ -41,11 +42,11 @@ impl App {
             }
             // Page up
             KeyCode::PageUp => {
-                self.help_scroll_offset = self.help_scroll_offset.saturating_sub(5);
+                self.help_scroll_offset = self.help_scroll_offset.saturating_sub(HELP_PAGE_SCROLL_LINES);
             }
             // Page down
             KeyCode::PageDown => {
-                self.help_scroll_offset = self.help_scroll_offset.saturating_add(5);
+                self.help_scroll_offset = self.help_scroll_offset.saturating_add(HELP_PAGE_SCROLL_LINES);
             }
             // Home - scroll to top
             KeyCode::Home => {
@@ -75,10 +76,10 @@ impl App {
     pub fn handle_filter_key(&mut self, code: KeyCode) -> KeyAction {
         match code {
             KeyCode::Esc => {
-                self.filter_mode = false;
+                self.view_mode = ViewMode::ProcessList;
             }
             KeyCode::Enter => {
-                self.filter_mode = false;
+                self.view_mode = ViewMode::ProcessList;
                 self.apply_filter();
             }
             KeyCode::Backspace => {
@@ -109,11 +110,11 @@ impl App {
             KeyCode::Down => self.detail_scroll_down(),
             KeyCode::PageUp => {
                 let (_, h) = terminal::size()?;
-                self.detail_page_up((h as usize).saturating_sub(6));
+                self.detail_page_up((h as usize).saturating_sub(VISIBLE_ROWS_OVERHEAD));
             }
             KeyCode::PageDown => {
                 let (_, h) = terminal::size()?;
-                self.detail_page_down((h as usize).saturating_sub(6));
+                self.detail_page_down((h as usize).saturating_sub(VISIBLE_ROWS_OVERHEAD));
             }
             KeyCode::Home => {
                 self.detail_scroll_offset = 0;
@@ -206,10 +207,10 @@ impl App {
                 self.decrease_refresh_interval();
             }
             KeyCode::Char('/') => {
-                self.filter_mode = true;
+                self.view_mode = ViewMode::FilterInput;
             }
             KeyCode::Char('?') => {
-                self.show_help = true;
+                self.view_mode = ViewMode::Help;
             }
             KeyCode::Esc => {
                 self.filter.clear();
@@ -222,11 +223,11 @@ impl App {
             KeyCode::Down => self.move_down(),
             KeyCode::PageUp => {
                 let (_, h) = terminal::size()?;
-                self.page_up((h as usize).saturating_sub(6));
+                self.page_up((h as usize).saturating_sub(VISIBLE_ROWS_OVERHEAD));
             }
             KeyCode::PageDown => {
                 let (_, h) = terminal::size()?;
-                self.page_down((h as usize).saturating_sub(6));
+                self.page_down((h as usize).saturating_sub(VISIBLE_ROWS_OVERHEAD));
             }
             KeyCode::Home => self.jump_to_start(),
             KeyCode::End => self.jump_to_end(),

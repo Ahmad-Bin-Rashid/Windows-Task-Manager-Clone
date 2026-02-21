@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 use windows::Win32::System::SystemInformation::GetLocalTime;
 
+use crate::constants::BYTES_PER_MB;
+
 use super::ProcessEntry;
 
 /// Generates a timestamped filename for the export
@@ -56,7 +58,7 @@ pub fn export_to_csv(processes: &[ProcessEntry]) -> io::Result<PathBuf> {
             proc.info.pid,
             name,
             proc.cpu_percent,
-            proc.memory_bytes as f64 / (1024.0 * 1024.0),
+            proc.memory_bytes as f64 / BYTES_PER_MB,
             proc.thread_count,
             proc.priority.name(),
             proc.handle_count,

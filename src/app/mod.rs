@@ -14,7 +14,7 @@
 //! - `affinity` - CPU affinity dialog
 
 mod affinity;
-pub mod cli;
+mod cli;
 mod detail_view;
 mod export;
 mod input;
@@ -24,11 +24,23 @@ mod process_ops;
 mod sort;
 mod state;
 mod tree_builder;
+mod view_mode;
 
-// Re-export public types
+// ============================================================================
+// Re-exports for clean imports
+// ============================================================================
+
+// CLI argument parsing
+pub use cli::parse_args;
+
+// CSV export
 pub use export::export_to_csv;
+
+// Input handling
 pub use input::KeyAction;
+
+// Core types
 pub use process_entry::ProcessEntry;
 pub use sort::SortColumn;
 pub use state::App;
-
+pub use view_mode::ViewMode;

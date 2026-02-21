@@ -10,6 +10,8 @@ use windows::Win32::System::Threading::{
     PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION,
 };
 
+use super::error::{AffinityError, AffinityResult};
+
 /// CPU affinity information for a process
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -27,7 +29,10 @@ pub struct CpuAffinity {
 }
 
 impl CpuAffinity {
-    /// Returns a formatted string describing the affinity
+    /// Returns a formatted string describing the affinity.
+    ///
+    /// # Returns
+    /// A human-readable string like "4/8 cores (Cores: 0, 1, 2, 3)"
     pub fn format(&self) -> String {
         if self.allowed_cores == self.total_cores {
             format!("{}/{} cores (All cores)", self.allowed_cores, self.total_cores)
@@ -44,7 +49,11 @@ impl CpuAffinity {
     }
 }
 
-/// Get the total number of logical processors (cores) on the system
+/// Get the total number of logical processors (cores) on the system.
+///
+/// # Returns
+/// The number of logical CPUs available on the system.
+#[must_use]
 pub fn get_system_core_count() -> u32 {
     unsafe {
         let mut sys_info = std::mem::zeroed();
@@ -53,7 +62,15 @@ pub fn get_system_core_count() -> u32 {
     }
 }
 
-/// Get CPU affinity information for a process
+/// Get CPU affinity information for a process.
+///
+/// # Arguments
+/// * `pid` - The process ID to query
+///
+/// # Returns
+/// * `Some(CpuAffinity)` - Affinity info if accessible
+/// * `None` - If the process cannot be queried (system process, access denied)
+#[must_use]
 pub fn get_process_affinity(pid: u32) -> Option<CpuAffinity> {
     // Skip system processes
     if pid == 0 || pid == 4 {
@@ -117,16 +134,16 @@ pub fn get_process_affinity(pid: u32) -> Option<CpuAffinity> {
 ///
 /// # Returns
 /// * `Ok(())` - Affinity was set successfully
-/// * `Err(String)` - Error message
-pub fn set_process_affinity(pid: u32, core_mask: usize) -> Result<(), String> {
+/// * `Err(AffinityError)` - Error description
+pub fn set_process_affinity(pid: u32, core_mask: usize) -> AffinityResult<()> {
     // Validate that at least one core is selected
     if core_mask == 0 {
-        return Err("At least one core must be selected".to_string());
+        return Err(AffinityError::NoCoresSelected);
     }
 
     // Skip system processes
     if pid == 0 || pid == 4 {
-        return Err("Cannot modify system process affinity".to_string());
+        return Err(AffinityError::SystemProcess);
     }
 
     unsafe {
@@ -138,12 +155,12 @@ pub fn set_process_affinity(pid: u32, core_mask: usize) -> Result<(), String> {
         );
 
         if handle.is_err() {
-            return Err("Access denied - try running as Administrator".to_string());
+            return Err(AffinityError::AccessDenied);
         }
 
         let handle = handle.unwrap();
         if handle.is_invalid() {
-            return Err("Failed to open process".to_string());
+            return Err(AffinityError::AccessDenied);
         }
 
         // Get system mask to validate the requested mask
@@ -155,14 +172,14 @@ pub fn set_process_affinity(pid: u32, core_mask: usize) -> Result<(), String> {
         let valid_mask = core_mask & system_mask;
         if valid_mask == 0 {
             let _ = CloseHandle(handle);
-            return Err("Invalid core selection".to_string());
+            return Err(AffinityError::InvalidCoreSelection);
         }
 
         let result = SetProcessAffinityMask(handle, valid_mask);
         let _ = CloseHandle(handle);
 
         if result.is_err() {
-            return Err("Failed to set affinity - access denied".to_string());
+            return Err(AffinityError::SetFailed);
         }
 
         Ok(())

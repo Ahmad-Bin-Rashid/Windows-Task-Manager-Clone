@@ -65,6 +65,7 @@ fn wide_to_string(wide: &[u16]) -> String {
 ///     println!("{}: {}", proc.pid, proc.name);
 /// }
 /// ```
+#[must_use]
 pub fn enumerate_processes() -> windows::core::Result<Vec<ProcessInfo>> {
     let snapshot = SnapshotHandle::create_process_snapshot()?;
     let mut processes = Vec::new();

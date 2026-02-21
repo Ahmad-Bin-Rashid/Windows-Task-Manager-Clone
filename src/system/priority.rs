@@ -12,7 +12,20 @@ use windows::Win32::System::Threading::{
     REALTIME_PRIORITY_CLASS, PROCESS_CREATION_FLAGS,
 };
 
-/// Process priority levels
+use super::error::{PriorityError, PriorityResult};
+
+/// Windows process priority levels.
+///
+/// Priority determines how the OS scheduler allocates CPU time to a process.
+/// Higher priority processes receive more CPU time when competing for resources.
+///
+/// # Levels (lowest to highest)
+/// * `Idle` - Runs only when system is idle
+/// * `BelowNormal` - Lower than normal priority
+/// * `Normal` - Default priority for most applications
+/// * `AboveNormal` - Higher than normal priority
+/// * `High` - Significantly more CPU time (use with caution)
+/// * `Realtime` - Highest priority, can affect system stability
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Priority {
     Idle = 0,
@@ -158,8 +171,8 @@ pub fn get_process_priority(pid: u32) -> Priority {
 ///
 /// # Returns
 /// * `Ok(())` - Priority was set successfully
-/// * `Err(String)` - Error message if failed
-pub fn set_process_priority(pid: u32, priority: Priority) -> Result<(), String> {
+/// * `Err(PriorityError)` - Error if failed
+pub fn set_process_priority(pid: u32, priority: Priority) -> PriorityResult<()> {
     // Need PROCESS_SET_INFORMATION to change priority
     // SAFETY: OpenProcess is safe to call with valid parameters.
     let handle = unsafe {
@@ -168,7 +181,7 @@ pub fn set_process_priority(pid: u32, priority: Priority) -> Result<(), String> 
 
     let handle = match handle {
         Ok(h) => h,
-        Err(e) => return Err(format!("Cannot open process: {}", e)),
+        Err(e) => return Err(PriorityError::OpenFailed { message: e.to_string() }),
     };
 
     // SAFETY: SetPriorityClass is safe with a valid handle.
@@ -182,7 +195,7 @@ pub fn set_process_priority(pid: u32, priority: Priority) -> Result<(), String> 
 
     match result {
         Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to set priority: {}", e)),
+        Err(e) => Err(PriorityError::SetFailed { message: e.to_string() }),
     }
 }
 

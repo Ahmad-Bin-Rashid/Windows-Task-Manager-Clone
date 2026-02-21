@@ -28,6 +28,7 @@ use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 ///     println!("Running as Standard User");
 /// }
 /// ```
+#[must_use]
 pub fn is_elevated() -> bool {
     // SAFETY: These Win32 API calls are safe when used correctly.
     // We properly handle the token and close it when done.
@@ -67,6 +68,7 @@ pub fn is_elevated() -> bool {
 }
 
 /// Returns a display string for the current elevation status
+#[must_use]
 #[allow(dead_code)]
 pub fn elevation_status_string() -> &'static str {
     if is_elevated() {
@@ -77,6 +79,7 @@ pub fn elevation_status_string() -> &'static str {
 }
 
 /// Returns a short indicator for the elevation status (for compact displays)
+#[must_use]
 #[allow(dead_code)]
 pub fn elevation_indicator() -> &'static str {
     if is_elevated() {

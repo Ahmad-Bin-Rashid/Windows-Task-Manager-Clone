@@ -7,13 +7,20 @@ use crossterm::{
     style::{Color, Print, ResetColor, SetBackgroundColor, SetForegroundColor},
 };
 
-use crate::app::App;
-use crate::system::memory::format_bytes;
-use crate::system::uptime::format_uptime;
+use crate::app::{App, ViewMode};
+use crate::system::{format_bytes, format_uptime};
 
 use super::utils::{format_rate, truncate_string};
 
-/// Renders the detailed process view
+/// Renders the detailed process view.
+///
+/// Shows comprehensive information about a selected process including:
+/// - Basic info (PID, name, path, command line)
+/// - Resource usage (CPU, memory, threads, handles)
+/// - Disk I/O rates
+/// - CPU affinity
+/// - Loaded modules/DLLs
+/// - Network connections (TCP/UDP)
 pub fn render_detail_view(
     stdout: &mut io::Stdout,
     app: &mut App,
@@ -23,7 +30,7 @@ pub fn render_detail_view(
     let details = match &app.detail_view_data {
         Some(d) => d,
         None => {
-            app.detail_view_mode = false;
+            app.view_mode = ViewMode::ProcessList;
             return Ok(());
         }
     };

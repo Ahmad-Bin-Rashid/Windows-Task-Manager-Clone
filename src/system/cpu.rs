@@ -46,6 +46,9 @@ pub struct CpuTracker {
 
 impl CpuTracker {
     /// Creates a new CPU tracker and takes initial measurements.
+    ///
+    /// # Returns
+    /// A new `CpuTracker` ready to calculate CPU usage.
     pub fn new() -> Self {
         let num_cpus = get_num_cpus();
         let mut tracker = Self {
@@ -63,6 +66,9 @@ impl CpuTracker {
     }
     
     /// Updates the system snapshot and returns the CPU usage percentage.
+    ///
+    /// # Returns
+    /// System-wide CPU usage as a percentage (0.0-100.0).
     pub fn get_system_cpu_usage(&mut self) -> f64 {
         let current = match get_system_cpu_snapshot() {
             Ok(s) => s,
@@ -87,7 +93,12 @@ impl CpuTracker {
     }
     
     /// Gets CPU usage for a specific process as a percentage.
-    /// Returns 0.0 if the process cannot be accessed or on first call.
+    ///
+    /// # Arguments
+    /// * `pid` - The process ID to query
+    ///
+    /// # Returns
+    /// CPU usage as a percentage (0.0-100.0), or 0.0 if inaccessible.
     pub fn get_process_cpu_usage(&mut self, pid: u32) -> f64 {
         let current_system = match get_system_cpu_snapshot() {
             Ok(s) => s,
@@ -122,6 +133,9 @@ impl CpuTracker {
     }
     
     /// Clears tracked processes that no longer exist.
+    ///
+    /// # Arguments
+    /// * `active_pids` - List of currently active process IDs
     pub fn cleanup_stale_processes(&mut self, active_pids: &[u32]) {
         self.prev_processes.retain(|pid, _| active_pids.contains(pid));
     }

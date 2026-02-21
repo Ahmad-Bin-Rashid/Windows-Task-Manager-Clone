@@ -54,6 +54,7 @@
 //! | `?` | Show help overlay |
 
 mod app;
+mod constants;
 mod ffi;
 mod system;
 mod ui;
@@ -71,12 +72,12 @@ use crossterm::{
     },
 };
 
-use app::{cli, export_to_csv, App, KeyAction};
+use app::{export_to_csv, parse_args, App, KeyAction, ViewMode};
 use ui::render;
 
 fn main() -> io::Result<()> {
     // Parse command-line arguments
-    let args = cli::parse_args();
+    let args = parse_args();
     let mut app = App::with_args(&args);
     
     // Handle export mode (non-interactive)
@@ -183,7 +184,7 @@ fn run_event_loop(app: &mut App) -> io::Result<()> {
             app.refresh();
             
             // Also refresh detail view if active
-            if app.detail_view_mode {
+            if app.view_mode.is_detail_view() {
                 app.refresh_detail_view();
             }
             
@@ -200,18 +201,13 @@ fn dispatch_key_event(
     code: crossterm::event::KeyCode,
     modifiers: crossterm::event::KeyModifiers,
 ) -> io::Result<KeyAction> {
-    if app.show_help {
-        Ok(app.handle_help_key(code))
-    } else if app.affinity_mode {
-        Ok(app.handle_affinity_key(code))
-    } else if app.confirm_kill_mode {
-        Ok(app.handle_confirm_kill_key(code))
-    } else if app.detail_view_mode {
-        app.handle_detail_view_key(code)
-    } else if app.filter_mode {
-        Ok(app.handle_filter_key(code))
-    } else {
-        app.handle_normal_key(code, modifiers)
+    match app.view_mode {
+        ViewMode::Help => Ok(app.handle_help_key(code)),
+        ViewMode::Affinity => Ok(app.handle_affinity_key(code)),
+        ViewMode::ConfirmKill => Ok(app.handle_confirm_kill_key(code)),
+        ViewMode::DetailView => app.handle_detail_view_key(code),
+        ViewMode::FilterInput => Ok(app.handle_filter_key(code)),
+        ViewMode::ProcessList => app.handle_normal_key(code, modifiers),
     }
 }
 
