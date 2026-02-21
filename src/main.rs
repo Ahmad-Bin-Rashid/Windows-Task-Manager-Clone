@@ -6,7 +6,7 @@
 //! # Usage
 //!
 //! ```
-//! task_manager_clone [OPTIONS]
+//! task_manager_cli [OPTIONS]
 //!
 //! Options:
 //!   -r, --refresh <MS>    Refresh interval in milliseconds [default: 2000]
@@ -22,16 +22,16 @@
 //!
 //! ```
 //! # Start with default settings
-//! task_manager_clone
+//! task_manager_cli
 //!
 //! # Start with 500ms refresh rate
-//! task_manager_clone -r 500
+//! task_manager_cli -r 500
 //!
 //! # Start filtered to chrome processes, sorted by memory
-//! task_manager_clone -f chrome -s memory
+//! task_manager_cli -f chrome -s memory
 //!
 //! # Start in tree view mode
-//! task_manager_clone --tree
+//! task_manager_cli --tree
 //! ```
 //!
 //! # Controls
